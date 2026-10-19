@@ -3,6 +3,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_assets.dart';
 import '../../widgets/custom_pill_app_bar.dart';
+import '../legal/terms_screen.dart';
+import '../legal/privacy_policy_screen.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -224,15 +226,41 @@ class AboutScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppColors.surface,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.border, width: 1.2),
+                        border: Border.all(color: AppColors.borderSubtle, width: 1.0),
                       ),
                       child: Column(
                         children: [
-                          _buildLegalItem(context, 'Syarat & Ketentuan Layanan'),
-                          const Divider(height: 1, indent: 16, endIndent: 16),
-                          _buildLegalItem(context, 'Kebijakan Privasi'),
-                          const Divider(height: 1, indent: 16, endIndent: 16),
-                          _buildLegalItem(context, 'Hak Cipta & Lisensi Konten'),
+                          _buildLegalItem(
+                            context,
+                            'Syarat & Ketentuan Layanan',
+                            icon: LucideIcons.fileText,
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const TermsScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          const Divider(
+                            height: 1,
+                            thickness: 0.8,
+                            color: AppColors.dividerSubtle,
+                            indent: 56,
+                            endIndent: 16,
+                          ),
+                          _buildLegalItem(
+                            context,
+                            'Kebijakan Privasi',
+                            icon: LucideIcons.shieldCheck,
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const PrivacyPolicyScreen(),
+                                ),
+                              );
+                            },
+                          ),
                         ],
                       ),
                     ),
@@ -338,28 +366,41 @@ class AboutScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLegalItem(BuildContext context, String title) {
+  Widget _buildLegalItem(
+    BuildContext context,
+    String title, {
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
     return InkWell(
-      onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Membuka dokumen $title...'),
-            backgroundColor: AppColors.primaryDark,
-          ),
-        );
-      },
+      onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                size: 16,
+                color: AppColors.accentPurple,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ),
             const Icon(
