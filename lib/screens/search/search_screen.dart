@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../providers/series_provider.dart';
 import '../../widgets/series_poster_card.dart';
+import '../../widgets/humora_image.dart';
 import '../video/series_detail_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -15,13 +16,6 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final List<String> _categories = [
-    'Semua',
-    'Komedi',
-    'Romantis',
-    'Drama',
-    'Slice of Life',
-  ];
 
   @override
   void dispose() {
@@ -137,10 +131,10 @@ class _SearchScreenState extends State<SearchScreen> {
                 child: ListView.separated(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   scrollDirection: Axis.horizontal,
-                  itemCount: _categories.length,
+                  itemCount: seriesProv.categories.length,
                   separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (context, index) {
-                    final cat = _categories[index];
+                    final cat = seriesProv.categories[index];
                     final isSelected = seriesProv.selectedCategory == cat;
 
                     return GestureDetector(
@@ -323,10 +317,9 @@ class _SearchScreenState extends State<SearchScreen> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Image.asset(
-                series.thumbnailPath,
+              HumoraImage(
+                imagePathOrUrl: series.thumbnailPath,
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(color: AppColors.primaryPurple),
               ),
               DecoratedBox(
                 decoration: BoxDecoration(
@@ -491,10 +484,9 @@ class _SearchScreenState extends State<SearchScreen> {
                   child: SizedBox(
                     width: 90,
                     height: 105,
-                    child: Image.asset(
-                      series.thumbnailPath,
+                    child: HumoraImage(
+                      imagePathOrUrl: series.thumbnailPath,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Container(color: AppColors.primaryPurple),
                     ),
                   ),
                 ),
