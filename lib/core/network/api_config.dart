@@ -1,18 +1,19 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiConfig {
-  /// Default server IP and port as requested by user
-  static const String defaultBaseUrl = 'http://192.168.1.4:8000/api/v1';
   static const String _keyBaseUrl = 'humora_api_base_url';
+
+  static const String defaultBaseUrl = 'http://192.168.1.7:8000/api/v1';
 
   static String _currentBaseUrl = defaultBaseUrl;
 
-  static String get baseUrl => _currentBaseUrl;
+  static String get baseUrl => _currentBaseUrl.isNotEmpty ? _currentBaseUrl : defaultBaseUrl;
 
   static Future<void> init() async {
+    _currentBaseUrl = defaultBaseUrl;
     try {
       final prefs = await SharedPreferences.getInstance();
-      _currentBaseUrl = prefs.getString(_keyBaseUrl) ?? defaultBaseUrl;
+      await prefs.setString(_keyBaseUrl, defaultBaseUrl);
     } catch (_) {
       _currentBaseUrl = defaultBaseUrl;
     }
