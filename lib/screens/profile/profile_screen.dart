@@ -115,18 +115,13 @@ class ProfileScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Logo Center
-          Container(
-            width: 68,
-            height: 68,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.primaryYellow,
-            ),
-            padding: const EdgeInsets.all(10),
+          // Logo Center (No Yellow Background)
+          ClipOval(
             child: Image.asset(
               AppAssets.logoHumora,
-              fit: BoxFit.contain,
+              width: 68,
+              height: 68,
+              fit: BoxFit.cover,
               errorBuilder: (_, _, _) => const Icon(
                 LucideIcons.smile,
                 size: 36,
