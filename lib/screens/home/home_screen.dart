@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
-import '../../data/dummy_data.dart';
+import '../../core/constants/app_assets.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/series_provider.dart';
 import '../../providers/history_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../widgets/series_poster_card.dart';
+import '../../widgets/humora_image.dart';
 import '../auth/login_screen.dart';
 import '../notification/notification_screen.dart';
 import '../subscription/subscription_plans_screen.dart';
@@ -32,13 +33,24 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 100),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Top Pill Header
-              _buildTopHeader(context, auth, notifProv),
+        child: RefreshIndicator(
+          color: AppColors.primaryYellow,
+          onRefresh: () async {
+            await Future.wait([
+              seriesProv.fetchSeries(),
+              seriesProv.fetchCategories(),
+              historyProv.fetchHistory(),
+              notifProv.fetchNotifications(),
+            ]);
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.only(bottom: 100),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top Pill Header
+                _buildTopHeader(context, auth, notifProv),
 
               const SizedBox(height: 12),
 
@@ -278,8 +290,9 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildTopHeader(
     BuildContext context,
@@ -313,7 +326,7 @@ class HomeScreen extends StatelessWidget {
             ),
             padding: const EdgeInsets.all(4),
             child: Image.asset(
-              DummyData.logoHumora,
+              AppAssets.logoHumora,
               fit: BoxFit.contain,
               errorBuilder: (_, _, _) => const Icon(
                 LucideIcons.play,
@@ -630,12 +643,9 @@ class HomeScreen extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             // Thumbnail
-            Image.asset(
-              featured.thumbnailPath,
+            HumoraImage(
+              imagePathOrUrl: featured.thumbnailPath,
               fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
-                color: AppColors.primaryPurple,
-              ),
             ),
 
             // Gradient Overlay
@@ -855,12 +865,9 @@ class HomeScreen extends StatelessWidget {
                   child: SizedBox(
                     height: 120,
                     width: double.infinity,
-                    child: Image.asset(
-                      item.thumbnailPath,
+                    child: HumoraImage(
+                      imagePathOrUrl: item.thumbnailPath,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Container(
-                        color: AppColors.primaryPurple,
-                      ),
                     ),
                   ),
                 ),
