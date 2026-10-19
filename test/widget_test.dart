@@ -8,6 +8,8 @@ import 'package:humora_mobile/providers/series_provider.dart';
 import 'package:humora_mobile/providers/history_provider.dart';
 import 'package:humora_mobile/providers/notification_provider.dart';
 import 'package:humora_mobile/providers/settings_provider.dart';
+import 'package:humora_mobile/providers/subscription_provider.dart';
+import 'package:humora_mobile/providers/transaction_provider.dart';
 
 void main() {
   testWidgets('Humora app smoke test', (WidgetTester tester) async {
@@ -19,10 +21,13 @@ void main() {
           ChangeNotifierProvider(create: (_) => HistoryProvider()),
           ChangeNotifierProvider(create: (_) => NotificationProvider()),
           ChangeNotifierProvider(create: (_) => SettingsProvider()),
+          ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
+          ChangeNotifierProvider(create: (_) => TransactionProvider()),
         ],
         child: const HumoraApp(),
       ),
     );
+    await tester.pumpAndSettle();
 
     // Verify initial Beranda UI components are present
     expect(find.text('Beranda'), findsOneWidget);
@@ -45,10 +50,13 @@ void main() {
           ChangeNotifierProvider(create: (_) => HistoryProvider()),
           ChangeNotifierProvider(create: (_) => NotificationProvider()),
           ChangeNotifierProvider(create: (_) => SettingsProvider()),
+          ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
+          ChangeNotifierProvider(create: (_) => TransactionProvider()),
         ],
         child: const HumoraApp(),
       ),
     );
+    await tester.pumpAndSettle();
 
     // Tap Profil tab (index 3)
     await tester.tap(find.text('Profil'));
