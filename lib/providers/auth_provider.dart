@@ -1,144 +1,279 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import '../core/network/api_service.dart';
 import '../data/models/user_model.dart';
-import '../data/models/subscription_plan_model.dart';
 
 class AuthProvider extends ChangeNotifier {
+  final ApiService _api = ApiService();
+
   UserModel _user = _defaultGuestUser;
+  bool _isLoading = false;
+  String? _errorMessage;
 
   static const UserModel _defaultGuestUser = UserModel(
-    id: 'guest-0',
+    id: '0',
     name: 'Tamu Humora',
     email: '',
     phone: '',
     gender: 'Laki-laki',
     memberSince: 'Hari ini',
     tier: UserTier.guest,
+    status: 'active',
   );
 
-  static const UserModel _defaultFreeUser = UserModel(
-    id: 'user-free-1',
-    name: 'Ardhika Pradana',
-    email: 'ardhika@humora.id',
-    phone: '0812-8899-7766',
-    gender: 'Laki-laki',
-    memberSince: '12 Januari 2026',
-    tier: UserTier.free,
-  );
-
-  static const UserModel _defaultPremiumUser = UserModel(
-    id: 'user-premium-1',
-    name: 'Ardhika Pradana',
-    email: 'ardhika@humora.id',
-    phone: '0812-8899-7766',
-    gender: 'Laki-laki',
-    memberSince: '12 Januari 2026',
-    tier: UserTier.premium,
-    activePlanName: 'Paket 3 Bulan',
-    validUntil: '16 Januari 2027',
-    remainingDays: 90,
-  );
-
-  static const UserModel _defaultExpiredUser = UserModel(
-    id: 'user-expired-1',
-    name: 'Ardhika Pradana',
-    email: 'ardhika@humora.id',
-    phone: '0812-8899-7766',
-    gender: 'Laki-laki',
-    memberSince: '12 Januari 2026',
-    tier: UserTier.expired,
-    activePlanName: 'Paket 3 Bulan (Kedaluwarsa)',
-    validUntil: '15 Oktober 2026',
-    remainingDays: 0,
-  );
-
-  // Default to Guest mode as specified in the prompt
   UserModel get user => _user;
   UserTier get currentTier => _user.tier;
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
 
   bool get isGuest => _user.tier == UserTier.guest;
   bool get isFree => _user.tier == UserTier.free;
   bool get isPremium => _user.tier == UserTier.premium;
   bool get isExpired => _user.tier == UserTier.expired;
 
-  // Helper check if episode can be played without paywall
-  bool canAccessEpisode(int episodeNumber) {
-    if (isPremium) {
-      return true; // All unlocked without locks
+  AuthProvider() {
+    initialize();
+  }
+
+  Future<void> initialize() async {
+    final token = await _api.getToken();
+    if (token == null || token.isEmpty) {
+      _user = _defaultGuestUser;
+      notifyListeners();
+      return;
     }
-    // Tamu, User Gratis, Expired only can access episode 1 & 2
+
+    try {
+      final res = await _api.getMe();
+      if (res.data != null && res.data['data'] != null && res.data['data']['user'] != null) {
+        _user = UserModel.fromJson(res.data['data']['user'] as Map<String, dynamic>);
+      }
+    } catch (_) {
+      // If token expired/invalid, clear it and fall back to guest
+      await _api.clearToken();
+      _user = _defaultGuestUser;
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  // Access permission rule for video playback:
+  // Episodes 1 and 2 are always free preview for anyone (guest, free, expired).
+  // Episode 3 and above requires active VIP status.
+  bool canAccessEpisode(int episodeNumber) {
+    if (isPremium) return true;
     return episodeNumber <= 2;
   }
 
-  void switchTier(UserTier newTier) {
-    switch (newTier) {
+  void switchTier(UserTier tier) {
+    switch (tier) {
       case UserTier.guest:
         _user = _defaultGuestUser;
         break;
       case UserTier.free:
-        _user = _defaultFreeUser;
+        _user = const UserModel(
+          id: '1',
+          name: 'Ardhika Pradana',
+          email: 'ardhika@humora.id',
+          phone: '081288997766',
+          gender: 'Laki-laki',
+          memberSince: 'Maret 2026',
+          tier: UserTier.free,
+          status: 'active',
+        );
         break;
       case UserTier.premium:
-        _user = _defaultPremiumUser;
+        _user = const UserModel(
+          id: '2',
+          name: 'Budi Pratama',
+          email: 'budi@humora.id',
+          phone: '081299887766',
+          gender: 'Laki-laki',
+          memberSince: 'Januari 2026',
+          tier: UserTier.premium,
+          validUntil: '2026-12-31 23:59:59',
+          status: 'active',
+        );
         break;
       case UserTier.expired:
-        _user = _defaultExpiredUser;
+        _user = const UserModel(
+          id: '3',
+          name: 'Siti Nurhaliza',
+          email: 'expired@humora.id',
+          phone: '081277665544',
+          gender: 'Perempuan',
+          memberSince: 'November 2025',
+          tier: UserTier.expired,
+          validUntil: '2026-03-01 00:00:00',
+          status: 'active',
+        );
         break;
     }
     notifyListeners();
   }
 
-  void login({required String identifier, required String password}) {
-    _user = _defaultFreeUser.copyWith(
-      email: identifier.contains('@') ? identifier : 'ardhika@humora.id',
-      phone: !identifier.contains('@') ? identifier : '0812-8899-7766',
-    );
+  Future<bool> login({
+    required String identifier,
+    required String password,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
+
+    try {
+      final res = await _api.login(
+        identifier: identifier.trim(),
+        password: password,
+      );
+
+      if (res.data != null && res.data['data'] != null) {
+        final token = res.data['data']['token']?.toString();
+        if (token != null && token.isNotEmpty) {
+          await _api.saveToken(token);
+        }
+
+        if (res.data['data']['user'] != null) {
+          _user = UserModel.fromJson(res.data['data']['user'] as Map<String, dynamic>);
+        } else {
+          await refreshUser();
+        }
+
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+      _errorMessage = 'Respons login tidak valid.';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = _parseError(e);
+      notifyListeners();
+      return false;
+    }
   }
 
-  void register({
+  Future<bool> register({
     required String fullName,
     required String identifier,
     required String password,
-  }) {
-    _user = UserModel(
-      id: 'user-${DateTime.now().millisecondsSinceEpoch}',
-      name: fullName.isNotEmpty ? fullName : 'Ardhika Pradana',
-      email: identifier.contains('@') ? identifier : 'ardhika@humora.id',
-      phone: !identifier.contains('@') ? identifier : '0812-8899-7766',
-      gender: 'Laki-laki',
-      memberSince: '18 Oktober 2026',
-      tier: UserTier.free,
-    );
+    String gender = 'Laki-laki',
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
+
+    final isEmail = identifier.contains('@');
+
+    try {
+      final res = await _api.register(
+        name: fullName.trim(),
+        email: isEmail ? identifier.trim() : null,
+        phone: !isEmail ? identifier.trim() : null,
+        password: password,
+        gender: gender,
+      );
+
+      if (res.data != null && res.data['data'] != null) {
+        final token = res.data['data']['token']?.toString();
+        if (token != null && token.isNotEmpty) {
+          await _api.saveToken(token);
+        }
+
+        if (res.data['data']['user'] != null) {
+          _user = UserModel.fromJson(res.data['data']['user'] as Map<String, dynamic>);
+        }
+
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+      _errorMessage = 'Pendaftaran gagal diproses.';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = _parseError(e);
+      notifyListeners();
+      return false;
+    }
   }
 
-  void activateSubscription(SubscriptionPlanModel plan) {
-    _user = _user.copyWith(
-      tier: UserTier.premium,
-      activePlanName: plan.name,
-      validUntil: '16 Januari 2027',
-      remainingDays: 90,
-    );
-    notifyListeners();
-  }
-
-  void updateProfile({
+  Future<bool> updateProfile({
     required String name,
     required String email,
     required String phone,
     required String gender,
-  }) {
-    _user = _user.copyWith(
-      name: name,
-      email: email,
-      phone: phone,
-      gender: gender,
-    );
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
+
+    try {
+      final res = await _api.updateProfile(
+        name: name,
+        email: email.isNotEmpty ? email : null,
+        phone: phone.isNotEmpty ? phone : null,
+        gender: gender,
+      );
+
+      if (res.data != null && res.data['data'] != null && res.data['data']['user'] != null) {
+        _user = UserModel.fromJson(res.data['data']['user'] as Map<String, dynamic>);
+      }
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = _parseError(e);
+      notifyListeners();
+      return false;
+    }
   }
 
-  void logout() {
-    _user = _defaultGuestUser;
+  Future<void> refreshUser() async {
+    try {
+      final res = await _api.getMe();
+      if (res.data != null && res.data['data'] != null && res.data['data']['user'] != null) {
+        _user = UserModel.fromJson(res.data['data']['user'] as Map<String, dynamic>);
+        notifyListeners();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> logout() async {
+    _isLoading = true;
     notifyListeners();
+
+    try {
+      await _api.logout();
+    } catch (_) {
+      await _api.clearToken();
+    } finally {
+      _user = _defaultGuestUser;
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  String _parseError(dynamic error) {
+    if (error is DioException && error.response?.data != null) {
+      final data = error.response!.data;
+      if (data is Map) {
+        if (data['message'] != null) {
+          return data['message'].toString();
+        }
+        if (data['errors'] is Map) {
+          final errMap = data['errors'] as Map;
+          final firstKey = errMap.keys.firstOrNull;
+          if (firstKey != null && errMap[firstKey] is List) {
+            return (errMap[firstKey] as List).first.toString();
+          }
+        }
+      }
+    }
+    return 'Terjadi kesalahan jaringan atau server. Pastikan server backend aktif.';
   }
 }
