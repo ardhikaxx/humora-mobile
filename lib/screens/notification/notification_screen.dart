@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
-import '../../core/services/local_notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../providers/notification_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
@@ -34,63 +33,31 @@ class _NotificationScreenState extends State<NotificationScreen> {
             CustomPillAppBar(
               title: 'Notifikasi',
               onBackTap: () => Navigator.of(context).pop(),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  GestureDetector(
-                    onTap: () => _showNotificationTestSheet(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3E8FF),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.primaryPurple, width: 1),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(LucideIcons.bellRing, size: 13, color: AppColors.primaryDark),
-                          SizedBox(width: 4),
-                          Text(
-                            'Tes Push',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primaryDark,
-                            ),
-                          ),
-                        ],
+              trailing: GestureDetector(
+                onTap: () {
+                  notifProv.markAllAsRead();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Semua notifikasi telah ditandai dibaca.'),
+                      backgroundColor: AppColors.primaryDark,
+                    ),
+                  );
+                },
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(LucideIcons.checkCheck, size: 15, color: AppColors.accentPurple),
+                    SizedBox(width: 4),
+                    Text(
+                      'Tandai dibaca',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.accentPurple,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () {
-                      notifProv.markAllAsRead();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Semua notifikasi telah ditandai dibaca.'),
-                          backgroundColor: AppColors.primaryDark,
-                        ),
-                      );
-                    },
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(LucideIcons.checkCheck, size: 14, color: AppColors.accentPurple),
-                        SizedBox(width: 3),
-                        Text(
-                          'Dibaca',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.accentPurple,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -320,264 +287,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
       ),
     );
   }
-
-  void _showNotificationTestSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryPurple.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(LucideIcons.bellRing, color: AppColors.primaryDark, size: 20),
-                  ),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Simulasi Push Notifikasi',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        Text(
-                          'flutter_local_notifications ^22.3.2',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.accentPurple,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.of(ctx).pop(),
-                    icon: const Icon(LucideIcons.x, size: 20),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: const Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(LucideIcons.info, size: 16, color: Color(0xFF3B82F6)),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Pilih jenis notifikasi di bawah. Notifikasi akan langsung muncul di heads-up banner atas layar dan tersimpan di tray perangkat (berjalan di foreground & background/sleep).',
-                        style: TextStyle(fontSize: 11.5, color: Color(0xFF475569), height: 1.35),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // 1. VIP Disetujui
-              _buildTestItem(
-                ctx: ctx,
-                title: 'Verifikasi Premium Disetujui Admin',
-                subtitle: 'Pop-up & nada notifikasi saat pembayaran VIP disetujui.',
-                icon: LucideIcons.badgeCheck,
-                color: const Color(0xFF7C3AED),
-                onTap: () async {
-                  await LocalNotificationService.showVipApprovedNotification(
-                    trxCode: 'TRX-HUMORA-VIP99',
-                    planName: 'VIP 3 Bulan',
-                  );
-                  _showTriggerSuccess('Notifikasi VIP Disetujui berhasil dikirim!');
-                },
-              ),
-              const SizedBox(height: 10),
-
-              // 2. Video Baru
-              _buildTestItem(
-                ctx: ctx,
-                title: 'Video / Episode Baru Dirilis',
-                subtitle: 'Notifikasi rilis episode terbaru serial komedi.',
-                icon: LucideIcons.clapperboard,
-                color: const Color(0xFF2563EB),
-                onTap: () async {
-                  await LocalNotificationService.showNewVideoNotification(
-                    title: 'Kost 99',
-                    episodeName: 'Episode 4 - Tetangga Baru',
-                  );
-                  _showTriggerSuccess('Notifikasi Video Baru berhasil dikirim!');
-                },
-              ),
-              const SizedBox(height: 10),
-
-              // 3. Video Populer
-              _buildTestItem(
-                ctx: ctx,
-                title: 'Video Populer / Trending',
-                subtitle: 'Notifikasi tayangan terpopuler minggu ini.',
-                icon: LucideIcons.flame,
-                color: const Color(0xFFEA580C),
-                onTap: () async {
-                  await LocalNotificationService.showPopularVideoNotification(
-                    title: 'Warkop Milenial',
-                    totalLikes: '12.4K',
-                  );
-                  _showTriggerSuccess('Notifikasi Video Populer berhasil dikirim!');
-                },
-              ),
-              const SizedBox(height: 10),
-
-              // 4. Ajakan Berlangganan
-              _buildTestItem(
-                ctx: ctx,
-                title: 'Ajakan Berlangganan (Upgrade VIP)',
-                subtitle: 'Promo langganan hemat untuk buka semua episode tanpa jeda.',
-                icon: LucideIcons.sparkles,
-                color: const Color(0xFFCA8A04),
-                onTap: () async {
-                  await LocalNotificationService.showSubscriptionInviteNotification();
-                  _showTriggerSuccess('Notifikasi Ajakan Berlangganan berhasil dikirim!');
-                },
-              ),
-              const SizedBox(height: 10),
-
-              // 5. Langganan Mau Habis
-              _buildTestItem(
-                ctx: ctx,
-                title: 'Masa Langganan Segera Habis',
-                subtitle: 'Peringatan sisa masa aktif VIP tersisa 3 hari lagi.',
-                icon: LucideIcons.clockAlert,
-                color: const Color(0xFFDC2626),
-                onTap: () async {
-                  await LocalNotificationService.showExpiringSubscriptionNotification(
-                    remainingDays: 3,
-                  );
-                  _showTriggerSuccess('Notifikasi Masa VIP Berakhir berhasil dikirim!');
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showTriggerSuccess(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(LucideIcons.checkCircle2, color: Colors.white, size: 18),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5),
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: AppColors.primaryDark,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
-  Widget _buildTestItem({
-    required BuildContext ctx,
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
-    required Future<void> Function() onTap,
-  }) {
-    return InkWell(
-      onTap: () async {
-        Navigator.of(ctx).pop();
-        await onTap();
-      },
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border, width: 1.1),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(LucideIcons.send, size: 16, color: AppColors.textMuted),
-          ],
-        ),
-      ),
-    );
-  }
 }
+
 
