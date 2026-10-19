@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../providers/series_provider.dart';
 import '../../widgets/series_poster_card.dart';
 import '../../widgets/humora_image.dart';
+import '../../widgets/humora_empty_state.dart';
 import '../video/series_detail_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -186,14 +187,19 @@ class _SearchScreenState extends State<SearchScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: seriesProv.filteredSeries.isEmpty
-                      ? const Center(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 40),
-                            child: Text(
-                              'Tidak ada video yang cocok dengan pencarian.',
-                              style: TextStyle(color: AppColors.textSecondary),
-                            ),
-                          ),
+                      ? HumoraEmptyState(
+                          icon: LucideIcons.searchX,
+                          title: 'Tidak Ada Hasil Ditemukan',
+                          subtitle: seriesProv.searchQuery.isNotEmpty
+                              ? 'Tidak ada sketsa komedi yang cocok dengan kata kunci "${seriesProv.searchQuery}".'
+                              : 'Tidak ada video dalam kategori "${seriesProv.selectedCategory}".',
+                          buttonText: 'Reset Pencarian',
+                          buttonIcon: LucideIcons.rotateCcw,
+                          onButtonPressed: () {
+                            _searchController.clear();
+                            seriesProv.setSearchQuery('');
+                            seriesProv.setCategory('Semua');
+                          },
                         )
                       : GridView.builder(
                           physics: const NeverScrollableScrollPhysics(),
@@ -213,25 +219,38 @@ class _SearchScreenState extends State<SearchScreen> {
                           },
                         ),
                 ),
+              ] else if (seriesList.isEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                  child: HumoraEmptyState(
+                    icon: LucideIcons.film,
+                    title: 'Katalog Belum Tersedia',
+                    subtitle: 'Belum ada daftar series komedi di katalog saat ini. Silakan muat ulang data.',
+                    buttonText: 'Muat Ulang Katalog',
+                    buttonIcon: LucideIcons.rotateCcw,
+                    onButtonPressed: () {
+                      seriesProv.fetchSeries();
+                      seriesProv.fetchCategories();
+                    },
+                  ),
+                ),
               ] else ...[
-                // Normal view matching halaman cari.png exactly
-                // 1. Wide featured landscape card (Tipe Penumpang Taxi Online)
-                if (seriesList.length > 1)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _buildWideFeaturedCard(context, seriesList[1]),
-                  ),
-                const SizedBox(height: 16),
+                if (seriesList.length >= 4) ...[
+                  // Normal view matching editorial layout
+                  if (seriesList.length > 1)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _buildWideFeaturedCard(context, seriesList[1]),
+                    ),
+                  const SizedBox(height: 16),
 
-                // 2. 2-column Grid posters: Cara Deketin Cewek & Tipe-Tipe Teman Sekantor
-                if (seriesList.length > 3)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
                       children: [
                         Expanded(
                           child: SeriesPosterCard(
-                            series: seriesList[0], // Cara Deketin Cewek
+                            series: seriesList[0],
                             width: double.infinity,
                             badgeLabel: 'BARU',
                             badgeColor: AppColors.primaryYellowDark,
@@ -240,7 +259,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         const SizedBox(width: 14),
                         Expanded(
                           child: SeriesPosterCard(
-                            series: seriesList[3], // Tipe Teman Sekantor
+                            series: seriesList[3],
                             width: double.infinity,
                             badgeLabel: 'GRATIS',
                           ),
@@ -248,41 +267,61 @@ class _SearchScreenState extends State<SearchScreen> {
                       ],
                     ),
                   ),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                // 3. Horizontal Banner Card: Drama Warga Grup RT
-                if (seriesList.length > 2)
+                  if (seriesList.length > 2)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _buildHorizontalBannerCard(context, seriesList[2]),
+                    ),
+                  const SizedBox(height: 16),
+
+                  if (seriesList.length > 5)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: SeriesPosterCard(
+                              series: seriesList[4],
+                              width: double.infinity,
+                              badgeLabel: 'GRATIS',
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: SeriesPosterCard(
+                              series: seriesList[5],
+                              width: double.infinity,
+                              badgeLabel: 'BARU',
+                              badgeColor: AppColors.primaryYellowDark,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ] else ...[
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _buildHorizontalBannerCard(context, seriesList[2]),
-                  ),
-                const SizedBox(height: 16),
-
-                // 4. 2-column Grid posters: Tipe Pembeli di Toko & Momen Canggung Kencan
-                if (seriesList.length > 5)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: SeriesPosterCard(
-                            series: seriesList[4], // Tipe Pembeli di Toko
-                            width: double.infinity,
-                            badgeLabel: 'GRATIS',
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: SeriesPosterCard(
-                            series: seriesList[5], // Momen Canggung Kencan
-                            width: double.infinity,
-                            badgeLabel: 'BARU',
-                            badgeColor: AppColors.primaryYellowDark,
-                          ),
-                        ),
-                      ],
+                    child: GridView.builder(
+                      physics: const NeverScrollableScrollPhysics(),
+                      shrinkWrap: true,
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 0.72,
+                        crossAxisSpacing: 14,
+                        mainAxisSpacing: 14,
+                      ),
+                      itemCount: seriesList.length,
+                      itemBuilder: (context, index) {
+                        return SeriesPosterCard(
+                          series: seriesList[index],
+                          width: double.infinity,
+                        );
+                      },
                     ),
                   ),
+                ],
               ],
             ],
           ),
