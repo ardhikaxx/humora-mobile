@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import 'package:video_player/video_player.dart';
+import '../../core/network/api_config.dart';
+import '../../core/network/api_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/episode_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/series_provider.dart';
 import '../../providers/history_provider.dart';
-import '../../widgets/series_poster_card.dart';
+import '../../widgets/humora_image.dart';
 import '../../widgets/paywall_modal.dart';
+import '../../widgets/series_poster_card.dart';
 import 'series_detail_screen.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
@@ -26,36 +30,162 @@ class VideoPlayerScreen extends StatefulWidget {
 
 class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   late int _currentEpisodeNumber;
-  bool _isPlaying = true;
-  double _currentProgress = 0.20; // 20% played
-  bool _isLiked = false;
+  VideoPlayerController? _videoController;
+  bool _isControllerInitializing = false;
+  bool _hasVideoError = false;
+  bool _isPlaying = false;
+  double _currentProgress = 0.0;
+  Duration _currentPosition = Duration.zero;
+  Duration _totalDuration = Duration.zero;
   bool _isDescriptionExpanded = false;
 
   @override
   void initState() {
     super.initState();
     _currentEpisodeNumber = widget.initialEpisodeNumber;
-    _updateHistory();
+    _initializeVideoPlayer();
   }
 
-  void _updateHistory() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final seriesProv = context.read<SeriesProvider>();
-      final series = seriesProv.getSeriesById(widget.seriesId) ?? seriesProv.featuredSeries;
-      final episode = series.episodes.firstWhere(
-        (e) => e.episodeNumber == _currentEpisodeNumber,
-        orElse: () => series.episodes.first,
+  @override
+  void dispose() {
+    _syncWatchHistory();
+    _videoController?.removeListener(_onVideoControllerUpdate);
+    _videoController?.dispose();
+    super.dispose();
+  }
+
+  void _onVideoControllerUpdate() {
+    if (_videoController == null || !_videoController!.value.isInitialized) return;
+
+    final pos = _videoController!.value.position;
+    final dur = _videoController!.value.duration;
+
+    if (dur.inMilliseconds > 0 && mounted) {
+      setState(() {
+        _currentPosition = pos;
+        _totalDuration = dur;
+        _currentProgress = (pos.inMilliseconds / dur.inMilliseconds).clamp(0.0, 1.0);
+        _isPlaying = _videoController!.value.isPlaying;
+      });
+    }
+  }
+
+  Future<void> _initializeVideoPlayer() async {
+    final seriesProv = context.read<SeriesProvider>();
+    final series = seriesProv.getSeriesById(widget.seriesId) ?? seriesProv.featuredSeries;
+    final episode = series.episodes.firstWhere(
+      (e) => e.episodeNumber == _currentEpisodeNumber,
+      orElse: () => series.episodes.isNotEmpty ? series.episodes.first : const EpisodeModel(
+        id: '1',
+        seriesId: '1',
+        episodeNumber: 1,
+        title: 'Episode 1',
+        synopsis: '',
+        duration: '02:00',
+        likes: '0',
+        thumbnailPath: '',
+      ),
+    );
+
+    final auth = context.read<AuthProvider>();
+
+    // Paywall Check: Episodes 1 & 2 are free preview. Episode 3+ requires VIP.
+    if (_currentEpisodeNumber > 2 && !auth.isPremium) {
+      setState(() {
+        _hasVideoError = true;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        PaywallModal.show(context);
+      });
+      return;
+    }
+
+    setState(() {
+      _isControllerInitializing = true;
+      _hasVideoError = false;
+    });
+
+    try {
+      final token = await ApiService().getToken();
+      final headers = <String, String>{
+        'Accept': 'video/mp4,video/*;q=0.9,*/*;q=0.8',
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      };
+
+      // Construct server stream URL
+      final streamUrl = episode.streamUrl ??
+          '${ApiConfig.baseUrl}/files/stream/${episode.id}';
+
+      final oldController = _videoController;
+      oldController?.removeListener(_onVideoControllerUpdate);
+
+      final newController = VideoPlayerController.networkUrl(
+        Uri.parse(streamUrl),
+        httpHeaders: headers,
       );
 
-      context.read<HistoryProvider>().addOrUpdateProgress(
-        seriesId: series.id,
-        seriesTitle: series.title,
-        episodeNumberText: 'Video ${episode.episodeNumber}',
-        episodeTitle: episode.title,
-        thumbnailPath: episode.thumbnailPath,
-        progressPercent: (_currentProgress * 100).toInt(),
-      );
-    });
+      await newController.initialize();
+      await oldController?.dispose();
+
+      if (!mounted) {
+        newController.dispose();
+        return;
+      }
+
+      newController.addListener(_onVideoControllerUpdate);
+      newController.play();
+
+      setState(() {
+        _videoController = newController;
+        _isControllerInitializing = false;
+        _isPlaying = true;
+        _totalDuration = newController.value.duration;
+      });
+
+      _syncWatchHistory();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isControllerInitializing = false;
+          _hasVideoError = true;
+        });
+      }
+    }
+  }
+
+  void _syncWatchHistory() {
+    final seriesProv = context.read<SeriesProvider>();
+    final series = seriesProv.getSeriesById(widget.seriesId) ?? seriesProv.featuredSeries;
+    final episode = series.episodes.firstWhere(
+      (e) => e.episodeNumber == _currentEpisodeNumber,
+      orElse: () => series.episodes.isNotEmpty ? series.episodes.first : const EpisodeModel(
+        id: '1',
+        seriesId: '1',
+        episodeNumber: 1,
+        title: 'Episode 1',
+        synopsis: '',
+        duration: '02:00',
+        likes: '0',
+        thumbnailPath: '',
+      ),
+    );
+
+    final epIdInt = int.tryParse(episode.id);
+    final posSeconds = _currentPosition.inSeconds;
+    final durSeconds = _totalDuration.inSeconds > 0 ? _totalDuration.inSeconds : 120;
+    final percent = (_currentProgress * 100).toInt();
+
+    context.read<HistoryProvider>().addOrUpdateProgress(
+      seriesId: series.id,
+      seriesTitle: series.title,
+      episodeNumberText: 'Video ${episode.episodeNumber}',
+      episodeTitle: episode.title,
+      thumbnailPath: episode.thumbnailPath,
+      progressPercent: percent,
+      episodeId: epIdInt,
+      lastPosition: posSeconds,
+      durationSeconds: durSeconds,
+    );
   }
 
   void _playEpisode(int episodeNumber) {
@@ -65,12 +195,43 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       return;
     }
 
+    _syncWatchHistory();
+
     setState(() {
       _currentEpisodeNumber = episodeNumber;
-      _currentProgress = 0.05;
-      _isPlaying = true;
+      _currentProgress = 0.0;
+      _currentPosition = Duration.zero;
     });
-    _updateHistory();
+
+    _initializeVideoPlayer();
+  }
+
+  void _togglePlayPause() {
+    if (_videoController == null || !_videoController!.value.isInitialized) return;
+
+    if (_videoController!.value.isPlaying) {
+      _videoController!.pause();
+      setState(() => _isPlaying = false);
+    } else {
+      _videoController!.play();
+      setState(() => _isPlaying = true);
+    }
+  }
+
+  void _seekRelative(int seconds) {
+    if (_videoController == null || !_videoController!.value.isInitialized) return;
+
+    final newPos = _videoController!.value.position + Duration(seconds: seconds);
+    final clamped = Duration(
+      milliseconds: newPos.inMilliseconds.clamp(0, _totalDuration.inMilliseconds),
+    );
+    _videoController!.seekTo(clamped);
+  }
+
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes.remainder(60).toString();
+    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
   }
 
   @override
@@ -81,7 +242,18 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
     final currentEpisode = series.episodes.firstWhere(
       (e) => e.episodeNumber == _currentEpisodeNumber,
-      orElse: () => series.episodes.first,
+      orElse: () => series.episodes.isNotEmpty
+          ? series.episodes.first
+          : const EpisodeModel(
+              id: '1',
+              seriesId: '1',
+              episodeNumber: 1,
+              title: 'Episode 1',
+              synopsis: '',
+              duration: '02:00',
+              likes: '0',
+              thumbnailPath: '',
+            ),
     );
 
     final nextEpisode = _currentEpisodeNumber < series.episodes.length
@@ -91,6 +263,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           )
         : null;
 
+    final isEpLiked = seriesProv.isEpisodeLiked(currentEpisode.id);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -99,7 +273,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Video Player Section
+              // Real Video Player Stream Section
               _buildVideoPlayerSection(context, series, currentEpisode, nextEpisode),
 
               const SizedBox(height: 16),
@@ -204,17 +378,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                   children: [
                     GestureDetector(
                       onTap: () {
-                        setState(() {
-                          _isLiked = !_isLiked;
-                        });
+                        seriesProv.toggleEpisodeLike(currentEpisode.id);
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                         decoration: BoxDecoration(
-                          color: _isLiked ? const Color(0xFFFEE2E2) : AppColors.surface,
+                          color: isEpLiked ? const Color(0xFFFEE2E2) : AppColors.surface,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: _isLiked ? const Color(0xFFFCA5A5) : AppColors.border,
+                            color: isEpLiked ? const Color(0xFFFCA5A5) : AppColors.border,
                             width: 1.2,
                           ),
                         ),
@@ -224,15 +396,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                             Icon(
                               LucideIcons.heart,
                               size: 16,
-                              color: _isLiked ? const Color(0xFFEF4444) : AppColors.textSecondary,
+                              color: isEpLiked ? const Color(0xFFEF4444) : AppColors.textSecondary,
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              _isLiked ? '5.601 Suka' : '5.600 Suka',
+                              isEpLiked ? 'Disukai' : currentEpisode.likes,
                               style: TextStyle(
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w700,
-                                color: _isLiked ? const Color(0xFFEF4444) : AppColors.textPrimary,
+                                color: isEpLiked ? const Color(0xFFEF4444) : AppColors.textPrimary,
                               ),
                             ),
                           ],
@@ -242,21 +414,17 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                     const SizedBox(width: 10),
                     const Text(
                       'Ketuk untuk menyukai video ini',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textMuted,
-                      ),
+                      style: TextStyle(fontSize: 11, color: AppColors.textMuted),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
 
-              // Description Card
+              // Synopsis Card
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Container(
-                  width: double.infinity,
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: AppColors.surface,
@@ -267,16 +435,18 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        currentEpisode.synopsis,
+                        currentEpisode.synopsis.isNotEmpty
+                            ? currentEpisode.synopsis
+                            : 'Sketsa komedi original HUMORA dengan alur cerita jenaka dan penuh gelak tawa.',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          color: AppColors.textPrimary,
+                          height: 1.5,
+                        ),
                         maxLines: _isDescriptionExpanded ? null : 2,
                         overflow: _isDescriptionExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                          height: 1.4,
-                        ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       GestureDetector(
                         onTap: () {
                           setState(() {
@@ -284,9 +454,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                           });
                         },
                         child: Text(
-                          _isDescriptionExpanded ? 'Tutup selengkapnya' : 'Lihat selengkapnya',
+                          _isDescriptionExpanded ? 'Tutup Deskripsi' : 'Selengkapnya...',
                           style: const TextStyle(
-                            fontSize: 11.5,
+                            fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: AppColors.accentPurple,
                           ),
@@ -296,76 +466,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 14),
-
-              // Lanjut Otomatis Banner
-              if (nextEpisode != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: GestureDetector(
-                    onTap: () => _playEpisode(nextEpisode.episodeNumber),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryDark,
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryYellow,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              LucideIcons.play,
-                              color: AppColors.primaryDark,
-                              size: 18,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'LANJUT OTOMATIS',
-                                  style: TextStyle(
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.primaryYellow,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                                const SizedBox(height: 1),
-                                Text(
-                                  'Video ${nextEpisode.episodeNumber}: ${nextEpisode.title}',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Icon(
-                            LucideIcons.chevronRight,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
               const SizedBox(height: 20),
 
-              // Daftar Video Section
+              // Episode List Section Header
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
@@ -385,10 +488,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                         const SizedBox(height: 2),
                         Text(
                           'Total ${series.episodes.length} video dalam judul ini',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textSecondary,
-                          ),
+                          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
                         ),
                       ],
                     ),
@@ -450,70 +550,29 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                                 child: SizedBox(
                                   width: 88,
                                   height: 60,
-                                  child: Image.asset(
-                                    ep.thumbnailPath,
+                                  child: HumoraImage(
+                                    imagePathOrUrl: ep.thumbnailPath,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, _, _) => Container(color: AppColors.primaryPurple),
                                   ),
                                 ),
                               ),
                               if (isLocked)
                                 Positioned.fill(
-                                  child: Center(
-                                    child: Container(
-                                      width: 24,
-                                      height: 24,
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withValues(alpha: 0.7),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        LucideIcons.lock,
-                                        color: AppColors.primaryYellow,
-                                        size: 13,
-                                      ),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 0.55),
+                                      borderRadius: BorderRadius.circular(10),
                                     ),
-                                  ),
-                                )
-                              else if (isCurrent)
-                                Positioned.fill(
-                                  child: Center(
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        _buildEqualizerBar(16),
-                                        const SizedBox(width: 2),
-                                        _buildEqualizerBar(22),
-                                        const SizedBox(width: 2),
-                                        _buildEqualizerBar(14),
-                                      ],
+                                    child: const Center(
+                                      child: Icon(LucideIcons.lock, color: AppColors.primaryYellow, size: 20),
                                     ),
                                   ),
                                 ),
-                              Positioned(
-                                bottom: 4,
-                                right: 4,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: 0.7),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    ep.duration,
-                                    style: const TextStyle(
-                                      fontSize: 8.5,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
                             ],
                           ),
                           const SizedBox(width: 12),
 
-                          // Text Info
+                          // Metadata
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -599,57 +658,31 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  ep.synopsis,
-                                  style: const TextStyle(
-                                    fontSize: 10.5,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                                  '${ep.duration} • ${ep.likes}',
+                                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
                                 ),
                               ],
                             ),
                           ),
-
-                          // Right Icon
-                          if (isCurrent)
-                            Container(
-                              width: 32,
-                              height: 32,
-                              decoration: const BoxDecoration(
-                                color: AppColors.accentPurple,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                LucideIcons.play,
-                                size: 16,
-                                color: Colors.white,
-                              ),
-                            )
-                          else
-                            const Icon(
-                              LucideIcons.chevronRight,
-                              size: 16,
-                              color: AppColors.textMuted,
-                            ),
                         ],
                       ),
                     ),
                   ),
                 );
               }),
-              const SizedBox(height: 20),
 
-              // Rekomendasi Judul Lainnya
+              const SizedBox(height: 24),
+
+              // Rekomendasi Series Lainnya
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'Rekomendasi Judul Lainnya',
+                      'Rekomendasi Lainnya 🔥',
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 16,
                         fontWeight: FontWeight.w800,
                         color: AppColors.textPrimary,
                       ),
@@ -659,7 +692,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                       child: const Row(
                         children: [
                           Text(
-                            'Lihat Semua',
+                            'Kembali',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
@@ -708,14 +741,64 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Video Mock Still
-          Image.asset(
-            currentEpisode.thumbnailPath,
-            fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => Container(color: AppColors.primaryPurple),
-          ),
+          // 1. Real VideoPlayer or Thumbnail Still
+          if (_videoController != null && _videoController!.value.isInitialized)
+            Center(
+              child: AspectRatio(
+                aspectRatio: _videoController!.value.aspectRatio > 0
+                    ? _videoController!.value.aspectRatio
+                    : 16 / 9,
+                child: VideoPlayer(_videoController!),
+              ),
+            )
+          else
+            HumoraImage(
+              imagePathOrUrl: currentEpisode.thumbnailPath,
+              fit: BoxFit.cover,
+            ),
 
-          // Dark overlay for controls
+          // 2. Loading Spinner or Error State
+          if (_isControllerInitializing)
+            Container(
+              color: Colors.black.withValues(alpha: 0.6),
+              child: const Center(
+                child: CircularProgressIndicator(
+                  color: AppColors.primaryYellow,
+                  strokeWidth: 3,
+                ),
+              ),
+            )
+          else if (_hasVideoError)
+            Container(
+              color: Colors.black.withValues(alpha: 0.75),
+              padding: const EdgeInsets.all(24),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(LucideIcons.alertCircle, color: AppColors.primaryYellow, size: 36),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Video tidak dapat diputar',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: _initializeVideoPlayer,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryYellow,
+                        foregroundColor: AppColors.primaryDark,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      ),
+                      child: const Text('Coba Lagi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // 3. Dark Overlay for Video Controls
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -731,7 +814,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
             ),
           ),
 
-          // Top Controls: Back, Title/Series, Speaker
+          // 4. Top Controls: Back, Title/Series, Speaker
           Positioned(
             top: 10,
             left: 12,
@@ -782,35 +865,42 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                     ],
                   ),
                 ),
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.55),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    LucideIcons.volume2,
-                    color: Colors.white,
-                    size: 18,
+                GestureDetector(
+                  onTap: () {
+                    if (_videoController != null && _videoController!.value.isInitialized) {
+                      final vol = _videoController!.value.volume;
+                      _videoController!.setVolume(vol > 0 ? 0.0 : 1.0);
+                      setState(() {});
+                    }
+                  },
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.55),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      (_videoController?.value.volume ?? 1.0) > 0
+                          ? LucideIcons.volume2
+                          : LucideIcons.volumeX,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
 
-          // Center Controls: Rewind 10, Play/Pause, Forward 10
+          // 5. Center Controls: Rewind 10, Play/Pause, Forward 10
           Center(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Rewind 10s
                 GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _currentProgress = (_currentProgress - 0.1).clamp(0.0, 1.0);
-                    });
-                  },
+                  onTap: () => _seekRelative(-10),
                   child: Container(
                     width: 42,
                     height: 42,
@@ -829,11 +919,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
                 // Play / Pause Button
                 GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _isPlaying = !_isPlaying;
-                    });
-                  },
+                  onTap: _togglePlayPause,
                   child: Container(
                     width: 58,
                     height: 58,
@@ -852,11 +938,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
                 // Forward 10s
                 GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _currentProgress = (_currentProgress + 0.1).clamp(0.0, 1.0);
-                    });
-                  },
+                  onTap: () => _seekRelative(10),
                   child: Container(
                     width: 42,
                     height: 42,
@@ -875,7 +957,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
             ),
           ),
 
-          // Bottom Bar: Current Time, Slider, Video Selanjutnya, Fullscreen
+          // 6. Bottom Bar: Current Time, Slider, Next Video, Fullscreen
           Positioned(
             left: 12,
             right: 12,
@@ -886,9 +968,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      '0:26 / 2:10',
-                      style: TextStyle(
+                    Text(
+                      '${_formatDuration(_currentPosition)} / ${_formatDuration(_totalDuration)}',
+                      style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
@@ -925,39 +1007,34 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                               ),
                             ),
                           ),
-                        const SizedBox(width: 10),
-                        const Icon(
-                          LucideIcons.maximize2,
-                          color: Colors.white,
-                          size: 16,
-                        ),
                       ],
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                // Progress Bar
-                LinearProgressIndicator(
-                  value: _currentProgress,
-                  backgroundColor: Colors.white.withValues(alpha: 0.3),
-                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryYellow),
-                  minHeight: 3,
+                // Progress Bar with seek tap
+                GestureDetector(
+                  onHorizontalDragUpdate: (details) {
+                    final box = context.findRenderObject() as RenderBox?;
+                    if (box != null && _totalDuration.inMilliseconds > 0) {
+                      final tapPos = details.localPosition.dx;
+                      final totalWidth = box.size.width - 24;
+                      final ratio = (tapPos / totalWidth).clamp(0.0, 1.0);
+                      final seekMs = (ratio * _totalDuration.inMilliseconds).toInt();
+                      _videoController?.seekTo(Duration(milliseconds: seekMs));
+                    }
+                  },
+                  child: LinearProgressIndicator(
+                    value: _currentProgress,
+                    backgroundColor: Colors.white.withValues(alpha: 0.3),
+                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryYellow),
+                    minHeight: 4,
+                  ),
                 ),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildEqualizerBar(double height) {
-    return Container(
-      width: 3.5,
-      height: height,
-      decoration: BoxDecoration(
-        color: AppColors.primaryYellow,
-        borderRadius: BorderRadius.circular(2),
       ),
     );
   }
