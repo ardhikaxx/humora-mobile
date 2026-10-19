@@ -3,6 +3,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../core/theme/app_colors.dart';
 import '../data/models/series_model.dart';
 import '../screens/video/series_detail_screen.dart';
+import 'humora_image.dart';
 
 class SeriesPosterCard extends StatelessWidget {
   final SeriesModel series;
@@ -52,15 +53,9 @@ class SeriesPosterCard extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               // Poster Image
-              Image.asset(
-                series.thumbnailPath,
+              HumoraImage(
+                imagePathOrUrl: series.thumbnailPath,
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(
-                  color: AppColors.primaryPurple,
-                  child: const Center(
-                    child: Icon(LucideIcons.film, color: Colors.white, size: 32),
-                  ),
-                ),
               ),
 
               // Gradient Overlay
