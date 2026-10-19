@@ -241,4 +241,9 @@ class SeriesProvider extends ChangeNotifier {
       return null;
     }
   }
+
+  void setSeriesForTesting(List<SeriesModel> series) {
+    _seriesList = series;
+    notifyListeners();
+  }
 }
