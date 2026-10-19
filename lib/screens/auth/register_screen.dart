@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
@@ -5,6 +6,8 @@ import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_assets.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
+import '../legal/terms_screen.dart';
+import '../legal/privacy_policy_screen.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -341,9 +344,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: RichText(
-                            text: const TextSpan(
+                            text: TextSpan(
                               text: 'Saya menyetujui ',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 12,
                                 color: AppColors.textSecondary,
                                 height: 1.35,
@@ -351,20 +354,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               children: [
                                 TextSpan(
                                   text: 'Ketentuan Penggunaan',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimary,
+                                    color: AppColors.primaryPurple,
+                                    decoration: TextDecoration.underline,
                                   ),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => const TermsScreen(),
+                                        ),
+                                      );
+                                    },
                                 ),
-                                TextSpan(text: ' dan '),
+                                const TextSpan(text: ' dan '),
                                 TextSpan(
                                   text: 'Kebijakan Privasi',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimary,
+                                    color: AppColors.primaryPurple,
+                                    decoration: TextDecoration.underline,
                                   ),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => const PrivacyPolicyScreen(),
+                                        ),
+                                      );
+                                    },
                                 ),
-                                TextSpan(text: ' HUMORA.'),
+                                const TextSpan(text: ' HUMORA.'),
                               ],
                             ),
                           ),
@@ -414,8 +435,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 20),
 
               // Bottom Link
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              Wrap(
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   const Text(
                     'Sudah memiliki akun HUMORA? ',
