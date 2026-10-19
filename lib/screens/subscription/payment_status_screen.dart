@@ -7,6 +7,7 @@ import '../../data/models/subscription_plan_model.dart';
 import '../../data/models/transaction_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/transaction_provider.dart';
+import '../../core/services/local_notification_service.dart';
 import '../../widgets/custom_pill_app_bar.dart';
 import '../main_navigation_shell.dart';
 
@@ -43,6 +44,10 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
       });
       if (updated.isSuccess) {
         context.read<AuthProvider>().refreshUser();
+        LocalNotificationService.showVipApprovedNotification(
+          trxCode: updated.trxCode,
+          planName: updated.planName,
+        );
       }
     }
   }
@@ -61,6 +66,10 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
 
       if (updated.isSuccess) {
         context.read<AuthProvider>().refreshUser();
+        LocalNotificationService.showVipApprovedNotification(
+          trxCode: updated.trxCode,
+          planName: updated.planName,
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Selamat! Pembayaran Anda telah disetujui admin dan VIP sudah aktif!'),
