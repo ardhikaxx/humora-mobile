@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
-import '../../data/dummy_data.dart';
+import '../../core/constants/app_assets.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
 import 'register_screen.dart';
@@ -30,26 +30,48 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _handleLogin() {
+  Future<void> _handleLogin() async {
     final identifier = _selectedTabIndex == 0
         ? _emailController.text.trim()
         : _phoneController.text.trim();
     final password = _passwordController.text.trim();
 
-    context.read<AuthProvider>().login(
-      identifier: identifier.isNotEmpty ? identifier : 'ardhika@humora.id',
+    if (identifier.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mohon isi email atau nomor telepon dan kata sandi.'),
+          backgroundColor: Color(0xFFD97706),
+        ),
+      );
+      return;
+    }
+
+    final success = await context.read<AuthProvider>().login(
+      identifier: identifier,
       password: password,
     );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Berhasil masuk! Selamat datang di HUMORA.'),
-        backgroundColor: AppColors.primaryDark,
-        duration: Duration(seconds: 2),
-      ),
-    );
+    if (!mounted) return;
 
-    Navigator.of(context).pop();
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Berhasil masuk! Selamat datang di HUMORA.'),
+          backgroundColor: AppColors.primaryDark,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      Navigator.of(context).pop();
+    } else {
+      final err = context.read<AuthProvider>().errorMessage ??
+          'Gagal masuk. Periksa kembali email dan kata sandi Anda.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(err),
+          backgroundColor: AppColors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -76,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 padding: const EdgeInsets.all(12),
                 child: Image.asset(
-                  DummyData.logoHumora,
+                  AppAssets.logoHumora,
                   fit: BoxFit.contain,
                   errorBuilder: (_, _, _) => const Icon(
                     LucideIcons.smile,
