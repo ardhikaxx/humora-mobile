@@ -7,6 +7,7 @@ class EpisodeModel {
   final String duration;
   final int durationSeconds;
   final String likes;
+  final int likesCount;
   final String thumbnailPath;
   final bool isPremium;
   final bool isFree;
@@ -26,6 +27,7 @@ class EpisodeModel {
     required this.duration,
     this.durationSeconds = 120,
     required this.likes,
+    this.likesCount = 0,
     required this.thumbnailPath,
     this.isPremium = false,
     this.isFree = true,
@@ -44,6 +46,12 @@ class EpisodeModel {
     final isFree = json['is_free'] == true || epNum <= 2;
     final isPremium = json['is_premium'] == true || (!isFree);
     final isLocked = json['is_locked'] == true;
+    final epLikesCount = json['likes_count'] != null
+        ? int.tryParse(json['likes_count'].toString()) ?? 0
+        : 0;
+    final epLikesStr = epLikesCount > 0
+        ? (epLikesCount >= 1000 ? '${(epLikesCount / 1000).toStringAsFixed(1)}k Suka' : '$epLikesCount Suka')
+        : '0 Suka';
 
     return EpisodeModel(
       id: json['id']?.toString() ?? '',
@@ -55,9 +63,8 @@ class EpisodeModel {
       durationSeconds: json['duration_seconds'] != null
           ? int.tryParse(json['duration_seconds'].toString()) ?? 120
           : 120,
-      likes: json['likes_count'] != null
-          ? '${json['likes_count']} Suka'
-          : '5.6K Suka',
+      likes: epLikesStr,
+      likesCount: epLikesCount,
       thumbnailPath: json['thumbnail_url']?.toString() ??
           json['thumbnail_path']?.toString() ??
           'assets/images/thumbnails/thumb_caradeketin.png',
@@ -85,6 +92,7 @@ class EpisodeModel {
     String? duration,
     int? durationSeconds,
     String? likes,
+    int? likesCount,
     String? thumbnailPath,
     bool? isPremium,
     bool? isFree,
@@ -104,6 +112,7 @@ class EpisodeModel {
       duration: duration ?? this.duration,
       durationSeconds: durationSeconds ?? this.durationSeconds,
       likes: likes ?? this.likes,
+      likesCount: likesCount ?? this.likesCount,
       thumbnailPath: thumbnailPath ?? this.thumbnailPath,
       isPremium: isPremium ?? this.isPremium,
       isFree: isFree ?? this.isFree,
