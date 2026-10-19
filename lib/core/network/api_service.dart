@@ -176,6 +176,28 @@ class ApiService {
     }
   }
 
+  Future<Response> verifyForgotPasswordEmail(String email) async {
+    return await _dio.post(
+      '/auth/forgot-password',
+      data: {'email': email},
+    );
+  }
+
+  Future<Response> resetPassword({
+    required String email,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    return await _dio.post(
+      '/auth/reset-password',
+      data: {
+        'email': email,
+        'password': password,
+        'password_confirmation': passwordConfirmation,
+      },
+    );
+  }
+
   // --- CATALOG & DISCOVERY ---
   Future<Response> getSeries({
     String? search,
