@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
-import '../../data/dummy_data.dart';
 import '../../data/models/subscription_plan_model.dart';
+import '../../providers/subscription_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
 import 'checkout_screen.dart';
 
@@ -14,17 +15,76 @@ class SubscriptionPlansScreen extends StatefulWidget {
 }
 
 class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
-  late SubscriptionPlanModel _selectedPlan;
+  SubscriptionPlanModel? _selectedPlan;
 
   @override
   void initState() {
     super.initState();
-    // Default to 3 Month Plan as highlighted in reference
-    _selectedPlan = DummyData.subscriptionPlans[1];
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<SubscriptionProvider>().fetchPlans();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final subProv = context.watch<SubscriptionProvider>();
+    final availablePlans = subProv.plans;
+
+    if (subProv.isLoading && availablePlans.isEmpty) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: const SafeArea(
+          child: Center(
+            child: CircularProgressIndicator(color: AppColors.primaryYellow),
+          ),
+        ),
+      );
+    }
+
+    if (availablePlans.isEmpty) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(
+          child: Column(
+            children: [
+              CustomPillAppBar(
+                title: 'Paket Premium',
+                onBackTap: () => Navigator.of(context).pop(),
+              ),
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(LucideIcons.crown, size: 48, color: AppColors.textMuted),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Belum ada paket langganan aktif.',
+                        style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: () => context.read<SubscriptionProvider>().fetchPlans(),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryYellow,
+                          foregroundColor: AppColors.primaryDark,
+                        ),
+                        child: const Text('Muat Ulang'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final currentSelected = (_selectedPlan != null && availablePlans.any((p) => p.id == _selectedPlan!.id))
+        ? _selectedPlan!
+        : availablePlans.first;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -95,8 +155,8 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                     const SizedBox(height: 20),
 
                     // Plan Cards List
-                    ...DummyData.subscriptionPlans.map((plan) {
-                      final isSelected = _selectedPlan.id == plan.id;
+                    ...availablePlans.map((plan) {
+                      final isSelected = currentSelected.id == plan.id;
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 14),
                         child: _buildPlanCard(plan, isSelected),
@@ -117,7 +177,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'KEUNTUNGAN ${_selectedPlan.name.toUpperCase()}',
+                            'KEUNTUNGAN ${currentSelected.name.toUpperCase()}',
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w800,
@@ -126,7 +186,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          ..._selectedPlan.benefits.map((benefit) {
+                          ...currentSelected.benefits.map((benefit) {
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 10),
                               child: Row(
@@ -157,7 +217,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                     ),
                     const SizedBox(height: 14),
 
-                    // Prototype Disclaimer Note
+                    // Payment Instruction Note
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
@@ -172,7 +232,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                           SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'Seluruh transaksi dan nominal pada aplikasi ini adalah demonstrasi prototype UI/UX. Tidak ada transaksi perbankan nyata yang diproses.',
+                              'Pembayaran diproses secara manual melalui transfer bank (BCA/Mandiri) atau QRIS. Setelah mengunggah bukti transfer, admin HUMORA akan memverifikasi dan mengaktifkan VIP.',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: AppColors.textSecondary,
@@ -190,7 +250,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
             ),
 
             // Bottom Sticky Checkout Bar
-            _buildBottomBar(context),
+            _buildBottomBar(context, currentSelected),
           ],
         ),
       ),
@@ -346,8 +406,8 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
     );
   }
 
-  Widget _buildBottomBar(BuildContext context) {
-    final formattedPrice = 'Rp ${_selectedPlan.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}';
+  Widget _buildBottomBar(BuildContext context, SubscriptionPlanModel selectedPlan) {
+    final formattedPrice = 'Rp ${selectedPlan.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
@@ -394,7 +454,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => CheckoutScreen(plan: _selectedPlan),
+                    builder: (_) => CheckoutScreen(plan: selectedPlan),
                   ),
                 );
               },
@@ -430,7 +490,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
               Icon(LucideIcons.shieldCheck, size: 14, color: AppColors.green),
               SizedBox(width: 6),
               Text(
-                'Garansi akses terbuka instan dalam simulasi demo',
+                'Verifikasi resmi admin HUMORA aman dan terpercaya',
                 style: TextStyle(
                   fontSize: 11,
                   color: AppColors.textSecondary,
