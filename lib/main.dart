@@ -12,6 +12,8 @@ import 'providers/subscription_provider.dart';
 import 'providers/transaction_provider.dart';
 import 'screens/main_navigation_shell.dart';
 
+final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -53,6 +55,7 @@ class HumoraApp extends StatelessWidget {
       title: 'HUMORA',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      navigatorObservers: [routeObserver],
       home: const MainNavigationShell(),
     );
   }
