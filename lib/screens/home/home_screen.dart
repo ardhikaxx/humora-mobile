@@ -9,6 +9,7 @@ import '../../providers/history_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../widgets/series_poster_card.dart';
 import '../../widgets/humora_image.dart';
+import '../../widgets/humora_empty_state.dart';
 import '../auth/login_screen.dart';
 import '../notification/notification_screen.dart';
 import '../subscription/subscription_plans_screen.dart';
@@ -54,22 +55,38 @@ class HomeScreen extends StatelessWidget {
 
               const SizedBox(height: 12),
 
-              // VIP Promo Yellow Banner (Hidden for active Premium user)
-              if (!auth.isPremium) ...[
+              if (seriesProv.seriesList.isEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                  child: HumoraEmptyState(
+                    icon: LucideIcons.film,
+                    title: 'Katalog Video Belum Tersedia',
+                    subtitle: 'Saat ini belum ada episode sketsa komedi yang dapat ditampilkan. Silakan segarkan halaman untuk memeriksa konten baru.',
+                    buttonText: 'Muat Ulang Halaman',
+                    buttonIcon: LucideIcons.rotateCcw,
+                    onButtonPressed: () {
+                      seriesProv.fetchSeries();
+                      seriesProv.fetchCategories();
+                    },
+                  ),
+                ),
+              ] else ...[
+                // VIP Promo Yellow Banner (Hidden for active Premium user)
+                if (!auth.isPremium) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _buildVipPromoBanner(context),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // Featured Hero Card
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildVipPromoBanner(context),
+                  child: _buildHeroCard(context, featured),
                 ),
-                const SizedBox(height: 16),
-              ],
 
-              // Featured Hero Card
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _buildHeroCard(context, featured),
-              ),
-
-              const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
               // Lanjutkan Menonton Section
               if (continuing.isNotEmpty) ...[
@@ -286,6 +303,7 @@ class HomeScreen extends StatelessWidget {
                   },
                 ),
               ),
+              ],
             ],
           ),
         ),
