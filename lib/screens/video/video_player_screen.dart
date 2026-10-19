@@ -948,13 +948,24 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Rekomendasi Lainnya 🔥',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
-                      ),
+                    const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          LucideIcons.flame,
+                          size: 18,
+                          color: Color(0xFFEF4444),
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Rekomendasi Lainnya',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
                     ),
                     GestureDetector(
                       onTap: () {
