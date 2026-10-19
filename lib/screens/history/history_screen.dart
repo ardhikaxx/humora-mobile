@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../providers/history_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
+import '../../widgets/humora_image.dart';
 import '../video/video_player_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -251,10 +252,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   child: SizedBox(
                     width: 95,
                     height: 68,
-                    child: Image.asset(
-                      item.thumbnailPath,
+                    child: HumoraImage(
+                      imagePathOrUrl: item.thumbnailPath,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Container(color: AppColors.primaryPurple),
                     ),
                   ),
                 ),
