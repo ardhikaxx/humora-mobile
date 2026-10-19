@@ -1,30 +1,66 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:provider/provider.dart';
 import 'package:humora_mobile/main.dart';
+import 'package:humora_mobile/data/models/user_model.dart';
+import 'package:humora_mobile/providers/auth_provider.dart';
+import 'package:humora_mobile/providers/series_provider.dart';
+import 'package:humora_mobile/providers/history_provider.dart';
+import 'package:humora_mobile/providers/notification_provider.dart';
+import 'package:humora_mobile/providers/settings_provider.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('Humora app smoke test', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => AuthProvider()),
+          ChangeNotifierProvider(create: (_) => SeriesProvider()),
+          ChangeNotifierProvider(create: (_) => HistoryProvider()),
+          ChangeNotifierProvider(create: (_) => NotificationProvider()),
+          ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ],
+        child: const HumoraApp(),
+      ),
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Verify initial Beranda UI components are present
+    expect(find.text('Beranda'), findsOneWidget);
+    expect(find.text('Cari'), findsOneWidget);
+    expect(find.text('Riwayat'), findsWidgets);
+    expect(find.text('Profil'), findsOneWidget);
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  test('AuthProvider 4 user tiers access control test', () {
+    final auth = AuthProvider();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // 1. Tamu (Guest)
+    auth.switchTier(UserTier.guest);
+    expect(auth.isGuest, isTrue);
+    expect(auth.canAccessEpisode(1), isTrue);
+    expect(auth.canAccessEpisode(2), isTrue);
+    expect(auth.canAccessEpisode(3), isFalse);
+    expect(auth.canAccessEpisode(4), isFalse);
+
+    // 2. User Gratis (Free)
+    auth.switchTier(UserTier.free);
+    expect(auth.isFree, isTrue);
+    expect(auth.canAccessEpisode(1), isTrue);
+    expect(auth.canAccessEpisode(2), isTrue);
+    expect(auth.canAccessEpisode(3), isFalse);
+
+    // 3. Premium Aktif (3 Bulan)
+    auth.switchTier(UserTier.premium);
+    expect(auth.isPremium, isTrue);
+    expect(auth.canAccessEpisode(1), isTrue);
+    expect(auth.canAccessEpisode(2), isTrue);
+    expect(auth.canAccessEpisode(3), isTrue);
+    expect(auth.canAccessEpisode(4), isTrue);
+
+    // 4. Expired
+    auth.switchTier(UserTier.expired);
+    expect(auth.isExpired, isTrue);
+    expect(auth.canAccessEpisode(1), isTrue);
+    expect(auth.canAccessEpisode(2), isTrue);
+    expect(auth.canAccessEpisode(3), isFalse);
   });
 }
