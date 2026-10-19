@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../providers/notification_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
+import '../../widgets/humora_empty_state.dart';
 import '../subscription/subscription_plans_screen.dart';
 import '../video/video_player_screen.dart';
 
@@ -82,11 +83,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
             // Notification Items List
             Expanded(
               child: displayList.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'Tidak ada notifikasi',
-                        style: TextStyle(color: AppColors.textSecondary),
-                      ),
+                  ? HumoraEmptyState(
+                      icon: _filterIndex == 1 ? LucideIcons.bellRing : LucideIcons.bellOff,
+                      title: _filterIndex == 1
+                          ? 'Tidak Ada Notifikasi Baru'
+                          : 'Kotak Notifikasi Bersih',
+                      subtitle: _filterIndex == 1
+                          ? 'Seluruh pesan dan pemberitahuan penting telah kamu baca.'
+                          : 'Belum ada pemberitahuan atau informasi baru untuk akunmu saat ini.',
                     )
                   : ListView.separated(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 30),
