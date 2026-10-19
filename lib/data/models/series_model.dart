@@ -9,6 +9,7 @@ class SeriesModel {
   final String releaseYear;
   final int totalEpisodes;
   final String likes;
+  final int likesCount;
   final String thumbnailPath;
   final bool isNew;
   final bool isPopular;
@@ -27,6 +28,7 @@ class SeriesModel {
     required this.releaseYear,
     required this.totalEpisodes,
     required this.likes,
+    this.likesCount = 0,
     required this.thumbnailPath,
     this.isNew = false,
     this.isPopular = false,
@@ -66,6 +68,17 @@ class SeriesModel {
         ? int.tryParse(json['likes_count'].toString()) ?? 0
         : 0;
 
+    final String likesStr;
+    if (likesCount <= 0) {
+      likesStr = '0 Suka';
+    } else if (likesCount >= 1000000) {
+      likesStr = '${(likesCount / 1000000).toStringAsFixed(1)}M Suka';
+    } else if (likesCount >= 1000) {
+      likesStr = '${(likesCount / 1000).toStringAsFixed(1)}k Suka';
+    } else {
+      likesStr = '$likesCount Suka';
+    }
+
     final thumbnail = json['thumbnail_url']?.toString() ??
         json['thumbnail_path']?.toString() ??
         'assets/images/thumbnails/thumb_caradeketin.png';
@@ -78,10 +91,11 @@ class SeriesModel {
       genre: genreStr,
       releaseYear: json['release_year']?.toString() ?? '2026',
       totalEpisodes: totalEps,
-      likes: '${likesCount}k Suka',
+      likes: likesStr,
+      likesCount: likesCount,
       thumbnailPath: thumbnail,
-      isNew: json['is_featured'] == true || json['is_new'] == true,
-      isPopular: likesCount > 50 || json['is_popular'] == true,
+      isNew: json['is_new'] == true || json['is_featured'] == true || totalEps > 0,
+      isPopular: json['is_popular'] == true || likesCount > 0 || json['is_featured'] == true,
       isFreeAvailable: true,
       isLiked: json['is_liked'] == true,
       tag: tagStr,
@@ -99,6 +113,7 @@ class SeriesModel {
     String? releaseYear,
     int? totalEpisodes,
     String? likes,
+    int? likesCount,
     String? thumbnailPath,
     bool? isNew,
     bool? isPopular,
@@ -117,6 +132,7 @@ class SeriesModel {
       releaseYear: releaseYear ?? this.releaseYear,
       totalEpisodes: totalEpisodes ?? this.totalEpisodes,
       likes: likes ?? this.likes,
+      likesCount: likesCount ?? this.likesCount,
       thumbnailPath: thumbnailPath ?? this.thumbnailPath,
       isNew: isNew ?? this.isNew,
       isPopular: isPopular ?? this.isPopular,
