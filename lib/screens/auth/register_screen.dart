@@ -121,23 +121,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Logo Center
-              Container(
-                width: 84,
-                height: 84,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.primaryYellow,
-                ),
-                padding: const EdgeInsets.all(12),
+              // Logo Center (No Yellow Background)
+              ClipOval(
                 child: Image.asset(
                   AppAssets.logoHumora,
-                  fit: BoxFit.contain,
+                  width: 84,
+                  height: 84,
+                  fit: BoxFit.cover,
                   errorBuilder: (_, _, _) => const Icon(
                     LucideIcons.smile,
                     size: 46,
                     color: AppColors.primaryDark,
                   ),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // Brand Tagline: "scroll, laugh, repeat"
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.accentPurpleSoft,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppColors.accentPurple.withValues(alpha: 0.25),
+                    width: 1,
+                  ),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      LucideIcons.sparkles,
+                      size: 13,
+                      color: AppColors.accentPurple,
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      'scroll, laugh, repeat',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.accentPurple,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 14),
@@ -198,7 +227,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 6),
                     _buildInputField(
                       controller: _nameController,
-                      hint: 'cth. Ardhika Pradana',
+                      hint: 'Masukkan nama lengkap',
                       keyboardType: TextInputType.name,
                     ),
                     const SizedBox(height: 14),
@@ -215,7 +244,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 6),
                     _buildInputField(
                       controller: _identifierController,
-                      hint: 'nama@email.com atau 0812xxxx',
+                      hint: 'Masukkan email atau nomor handphone',
                       keyboardType: TextInputType.emailAddress,
                     ),
                     const SizedBox(height: 14),
@@ -232,7 +261,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 6),
                     _buildInputField(
                       controller: _passwordController,
-                      hint: 'Minimal 6 karakter',
+                      hint: 'Masukkan kata sandi',
                       obscureText: _obscurePassword,
                       trailing: GestureDetector(
                         onTap: () {
@@ -261,7 +290,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 6),
                     _buildInputField(
                       controller: _confirmPasswordController,
-                      hint: 'Ketik ulang kata sandi...',
+                      hint: 'Konfirmasi kata sandi',
                       obscureText: _obscureConfirmPassword,
                       trailing: GestureDetector(
                         onTap: () {
