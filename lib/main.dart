@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'core/network/api_config.dart';
 import 'core/theme/app_theme.dart';
+import 'core/services/local_notification_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/series_provider.dart';
 import 'providers/history_provider.dart';
@@ -19,6 +20,10 @@ void main() async {
 
   // Initialize API configuration
   await ApiConfig.init();
+
+  // Initialize Local Notifications and schedule daily reminder
+  await LocalNotificationService.initialize();
+  await LocalNotificationService.scheduleDailyComedyReminder();
 
   // Set system UI overlay style to match Humora theme
   SystemChrome.setSystemUIOverlayStyle(
@@ -52,7 +57,7 @@ class HumoraApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'HUMORA',
+      title: 'Humora',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       navigatorObservers: [routeObserver],
