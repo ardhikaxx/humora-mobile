@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/series_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
 import '../../widgets/humora_image.dart';
+import '../../widgets/humora_empty_state.dart';
 import '../../widgets/paywall_modal.dart';
 import 'video_player_screen.dart';
 
@@ -97,7 +98,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                               const Icon(LucideIcons.heart, size: 13, color: Color(0xFFEF4444)),
                               const SizedBox(width: 5),
                               Text(
-                                '${series.likes} Suka',
+                                series.likes.contains('Suka') ? series.likes : '${series.likes} Suka',
                                 style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
@@ -282,12 +283,32 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                     const SizedBox(height: 12),
 
                     // Episodes List
-                    ...series.episodes.map((episode) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _buildEpisodeCard(context, series, episode, auth),
-                      );
-                    }),
+                    if (series.episodes.isEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppColors.border, width: 1.2),
+                          ),
+                          child: const HumoraEmptyState(
+                            compact: true,
+                            icon: LucideIcons.video,
+                            title: 'Belum Ada Episode Dirilis',
+                            subtitle: 'Series komedi ini sedang dipersiapkan. Episode baru akan segera diunggah ke platform.',
+                          ),
+                        ),
+                      ),
+                    ] else ...[
+                      ...series.episodes.map((episode) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _buildEpisodeCard(context, series, episode, auth),
+                        );
+                      }),
+                    ],
                     const SizedBox(height: 30),
                   ],
                 ),
