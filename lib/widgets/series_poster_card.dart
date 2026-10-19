@@ -11,6 +11,7 @@ class SeriesPosterCard extends StatelessWidget {
   final double height;
   final String? badgeLabel;
   final Color? badgeColor;
+  final VoidCallback? onTap;
 
   const SeriesPosterCard({
     super.key,
@@ -19,6 +20,7 @@ class SeriesPosterCard extends StatelessWidget {
     this.height = 205,
     this.badgeLabel,
     this.badgeColor,
+    this.onTap,
   });
 
   @override
@@ -27,7 +29,7 @@ class SeriesPosterCard extends StatelessWidget {
     final isGratis = effectiveBadge == 'GRATIS';
 
     return GestureDetector(
-      onTap: () {
+      onTap: onTap ?? () {
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => SeriesDetailScreen(seriesId: series.id),
