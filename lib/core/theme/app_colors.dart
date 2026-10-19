@@ -21,6 +21,8 @@ class AppColors {
   // Card Borders & Dividers
   static const Color border = Color(0xFFECE7F2);
   static const Color borderLight = Color(0xFFF3EFF7);
+  static const Color borderSubtle = Color(0xFFEEEAF4);
+  static const Color dividerSubtle = Color(0xFFF0EBF6);
   static const Color borderFocused = Color(0xFF7C3AED);
 
   // Status Colors
