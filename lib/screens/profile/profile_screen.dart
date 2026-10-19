@@ -656,7 +656,7 @@ class ProfileScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border, width: 1.2),
+        border: Border.all(color: AppColors.borderSubtle, width: 1.0),
       ),
       child: Column(
         children: [
@@ -673,7 +673,7 @@ class ProfileScreen extends StatelessWidget {
                 );
               },
             ),
-            const Divider(height: 1, indent: 56, endIndent: 16),
+            const Divider(height: 1, thickness: 0.8, color: AppColors.dividerSubtle, indent: 56, endIndent: 16),
           ],
           _buildMenuItem(
             icon: LucideIcons.clock,
@@ -687,7 +687,7 @@ class ProfileScreen extends StatelessWidget {
               );
             },
           ),
-          const Divider(height: 1, indent: 56, endIndent: 16),
+          const Divider(height: 1, thickness: 0.8, color: AppColors.dividerSubtle, indent: 56, endIndent: 16),
           _buildMenuItem(
             icon: LucideIcons.crown,
             iconBg: const Color(0xFFFEF3C7),
@@ -700,7 +700,7 @@ class ProfileScreen extends StatelessWidget {
               );
             },
           ),
-          const Divider(height: 1, indent: 56, endIndent: 16),
+          const Divider(height: 1, thickness: 0.8, color: AppColors.dividerSubtle, indent: 56, endIndent: 16),
           _buildMenuItem(
             icon: LucideIcons.bell,
             iconBg: AppColors.accentPurpleSoft,
@@ -713,7 +713,7 @@ class ProfileScreen extends StatelessWidget {
               );
             },
           ),
-          const Divider(height: 1, indent: 56, endIndent: 16),
+          const Divider(height: 1, thickness: 0.8, color: AppColors.dividerSubtle, indent: 56, endIndent: 16),
           _buildMenuItem(
             icon: LucideIcons.settings,
             iconBg: const Color(0xFFF4F4F5),
@@ -726,7 +726,7 @@ class ProfileScreen extends StatelessWidget {
               );
             },
           ),
-          const Divider(height: 1, indent: 56, endIndent: 16),
+          const Divider(height: 1, thickness: 0.8, color: AppColors.dividerSubtle, indent: 56, endIndent: 16),
           _buildMenuItem(
             icon: LucideIcons.helpCircle,
             iconBg: const Color(0xFFF4F4F5),
@@ -739,7 +739,7 @@ class ProfileScreen extends StatelessWidget {
               );
             },
           ),
-          const Divider(height: 1, indent: 56, endIndent: 16),
+          const Divider(height: 1, thickness: 0.8, color: AppColors.dividerSubtle, indent: 56, endIndent: 16),
           _buildMenuItem(
             icon: LucideIcons.info,
             iconBg: const Color(0xFFF4F4F5),
@@ -753,7 +753,7 @@ class ProfileScreen extends StatelessWidget {
             },
           ),
           if (!auth.isGuest) ...[
-            const Divider(height: 1, indent: 56, endIndent: 16),
+            const Divider(height: 1, thickness: 0.8, color: AppColors.dividerSubtle, indent: 56, endIndent: 16),
             _buildMenuItem(
               icon: LucideIcons.logOut,
               iconBg: const Color(0xFFFEE2E2),
