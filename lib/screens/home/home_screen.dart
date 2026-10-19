@@ -96,15 +96,27 @@ class HomeScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Expanded(
-                        child: Text(
-                          'Lanjutkan Menonton',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        child: Row(
+                          children: [
+                            Icon(
+                              LucideIcons.history,
+                              size: 18,
+                              color: AppColors.accentPurple,
+                            ),
+                            SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                'Lanjutkan Menonton',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -152,7 +164,9 @@ class HomeScreen extends StatelessWidget {
 
               // Video Populer Section
               _buildSectionHeader(
-                title: 'Video Populer 🌶️',
+                title: 'Video Populer',
+                icon: LucideIcons.flame,
+                iconColor: const Color(0xFFEF4444),
                 actionLabel: 'Lihat Semua',
                 onActionTap: () => onNavigateTab?.call(1),
               ),
@@ -178,7 +192,9 @@ class HomeScreen extends StatelessWidget {
 
               // Terbaru di HUMORA Section
               _buildSectionHeader(
-                title: 'Terbaru di HUMORA ✨',
+                title: 'Terbaru di HUMORA',
+                icon: LucideIcons.sparkles,
+                iconColor: AppColors.accentPurple,
                 actionLabel: 'Lihat Semua',
                 onActionTap: () => onNavigateTab?.call(1),
               ),
@@ -213,13 +229,27 @@ class HomeScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Gratis untuk Kamu',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
-                            ),
+                          Row(
+                            children: [
+                              Icon(
+                                LucideIcons.gift,
+                                size: 18,
+                                color: AppColors.green,
+                              ),
+                              SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  'Gratis untuk Kamu',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
                           SizedBox(height: 2),
                           Text(
@@ -283,6 +313,8 @@ class HomeScreen extends StatelessWidget {
               // Rekomendasi Buat Kamu Section
               _buildSectionHeader(
                 title: 'Rekomendasi Buat Kamu',
+                icon: LucideIcons.compass,
+                iconColor: AppColors.accentPurple,
                 actionLabel: 'Jelajahi',
                 onActionTap: () => onNavigateTab?.call(1),
               ),
@@ -960,6 +992,8 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildSectionHeader({
     required String title,
+    IconData? icon,
+    Color? iconColor,
     required String actionLabel,
     required VoidCallback onActionTap,
   }) {
@@ -969,15 +1003,30 @@ class HomeScreen extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  Icon(
+                    icon,
+                    size: 18,
+                    color: iconColor ?? AppColors.accentPurple,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Flexible(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 8),
