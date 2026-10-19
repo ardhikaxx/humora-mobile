@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_colors.dart';
+import '../core/services/permission_service.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
 import 'home/home_screen.dart';
 import 'search/search_screen.dart';
@@ -22,6 +23,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      PermissionService.checkAndRequestInitialPermissions();
+    });
   }
 
   void _onTabSelected(int index) {
