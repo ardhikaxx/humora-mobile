@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'core/network/api_config.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/series_provider.dart';
 import 'providers/history_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/settings_provider.dart';
+import 'providers/subscription_provider.dart';
+import 'providers/transaction_provider.dart';
 import 'screens/main_navigation_shell.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize API configuration
+  await ApiConfig.init();
 
   // Set system UI overlay style to match Humora theme
   SystemChrome.setSystemUIOverlayStyle(
@@ -30,6 +36,8 @@ void main() {
         ChangeNotifierProvider(create: (_) => HistoryProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
+        ChangeNotifierProvider(create: (_) => TransactionProvider()),
       ],
       child: const HumoraApp(),
     ),
