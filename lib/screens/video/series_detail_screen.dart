@@ -6,6 +6,7 @@ import '../../data/models/episode_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/series_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
+import '../../widgets/humora_image.dart';
 import '../../widgets/paywall_modal.dart';
 import 'video_player_screen.dart';
 
@@ -20,6 +21,14 @@ class SeriesDetailScreen extends StatefulWidget {
 
 class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
   bool _isSynopsisExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<SeriesProvider>().fetchSeriesDetail(widget.seriesId);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -319,10 +328,9 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Image.asset(
-                series.thumbnailPath,
+              HumoraImage(
+                imagePathOrUrl: series.thumbnailPath,
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(color: AppColors.primaryPurple),
               ),
               DecoratedBox(
                 decoration: BoxDecoration(
@@ -531,10 +539,9 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                   child: SizedBox(
                     width: 105,
                     height: 72,
-                    child: Image.asset(
-                      episode.thumbnailPath,
+                    child: HumoraImage(
+                      imagePathOrUrl: episode.thumbnailPath,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Container(color: AppColors.primaryPurple),
                     ),
                   ),
                 ),
