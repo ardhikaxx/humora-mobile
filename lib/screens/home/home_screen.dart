@@ -334,18 +334,13 @@ class HomeScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Humora Circular Logo
-          Container(
-            width: 38,
-            height: 38,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.primaryYellow,
-            ),
-            padding: const EdgeInsets.all(4),
+          // Humora Full Rounded Logo (No Yellow Background)
+          ClipOval(
             child: Image.asset(
               AppAssets.logoHumora,
-              fit: BoxFit.contain,
+              width: 38,
+              height: 38,
+              fit: BoxFit.cover,
               errorBuilder: (_, _, _) => const Icon(
                 LucideIcons.play,
                 size: 20,
