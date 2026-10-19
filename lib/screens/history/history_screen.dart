@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../providers/history_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
 import '../../widgets/humora_image.dart';
+import '../../widgets/humora_empty_state.dart';
 import '../video/video_player_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -120,27 +121,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
             // History Items List
             Expanded(
               child: currentList.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            _selectedTabIndex == 0 ? LucideIcons.clock : LucideIcons.checkCheck,
-                            size: 48,
-                            color: AppColors.textMuted.withValues(alpha: 0.5),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            _selectedTabIndex == 0
-                                ? 'Belum ada video yang sedang ditonton'
-                                : 'Belum ada video yang selesai ditonton',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
+                  ? HumoraEmptyState(
+                      icon: _selectedTabIndex == 0 ? LucideIcons.clock : LucideIcons.checkCheck,
+                      title: _selectedTabIndex == 0
+                          ? 'Belum Ada Video Berjalan'
+                          : 'Belum Ada Video Selesai',
+                      subtitle: _selectedTabIndex == 0
+                          ? 'Video sketsa komedi yang kamu tonton sebagian akan tercatat di sini agar kamu bisa melanjutkan tontonan kapan saja.'
+                          : 'Video sketsa komedi yang sudah kamu tonton hingga selesai akan tersimpan rapi di sini.',
                     )
                   : ListView.separated(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
