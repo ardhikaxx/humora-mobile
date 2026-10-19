@@ -28,6 +28,7 @@ class SeriesProvider extends ChangeNotifier {
   String? _errorMessage;
 
   List<SeriesModel> get allSeries => _seriesList;
+  List<SeriesModel> get seriesList => _seriesList;
   List<String> get categories => _categories;
   String get searchQuery => _searchQuery;
   String get selectedCategory => _selectedCategory;
@@ -155,11 +156,30 @@ class SeriesProvider extends ChangeNotifier {
   Future<void> toggleEpisodeLike(String episodeId) async {
     final epIdInt = int.tryParse(episodeId);
 
-    if (_likedEpisodes.contains(episodeId)) {
-      _likedEpisodes.remove(episodeId);
-    } else {
+    final isLikedNow = !_likedEpisodes.contains(episodeId);
+    if (isLikedNow) {
       _likedEpisodes.add(episodeId);
+    } else {
+      _likedEpisodes.remove(episodeId);
     }
+
+    // Optimistically update episode in series list
+    for (int i = 0; i < _seriesList.length; i++) {
+      final s = _seriesList[i];
+      final epIdx = s.episodes.indexWhere((e) => e.id == episodeId);
+      if (epIdx != -1) {
+        final ep = s.episodes[epIdx];
+        final newCount = isLikedNow ? ep.likesCount + 1 : (ep.likesCount > 0 ? ep.likesCount - 1 : 0);
+        final newLikesStr = newCount > 0
+            ? (newCount >= 1000 ? '${(newCount / 1000).toStringAsFixed(1)}k Suka' : '$newCount Suka')
+            : '0 Suka';
+        final updatedEpList = List<EpisodeModel>.from(s.episodes);
+        updatedEpList[epIdx] = ep.copyWith(likesCount: newCount, likes: newLikesStr);
+        _seriesList[i] = s.copyWith(episodes: updatedEpList);
+        break;
+      }
+    }
+
     notifyListeners();
 
     if (epIdInt != null) {
@@ -174,11 +194,23 @@ class SeriesProvider extends ChangeNotifier {
   Future<void> toggleSeriesLike(String seriesId) async {
     final sIdInt = int.tryParse(seriesId);
 
-    if (_likedSeries.contains(seriesId)) {
-      _likedSeries.remove(seriesId);
-    } else {
+    final isLikedNow = !_likedSeries.contains(seriesId);
+    if (isLikedNow) {
       _likedSeries.add(seriesId);
+    } else {
+      _likedSeries.remove(seriesId);
     }
+
+    final sIdx = _seriesList.indexWhere((s) => s.id == seriesId || s.slug == seriesId);
+    if (sIdx != -1) {
+      final s = _seriesList[sIdx];
+      final newCount = isLikedNow ? s.likesCount + 1 : (s.likesCount > 0 ? s.likesCount - 1 : 0);
+      final newLikesStr = newCount > 0
+          ? (newCount >= 1000 ? '${(newCount / 1000).toStringAsFixed(1)}k Suka' : '$newCount Suka')
+          : '0 Suka';
+      _seriesList[sIdx] = s.copyWith(likesCount: newCount, likes: newLikesStr, isLiked: isLikedNow);
+    }
+
     notifyListeners();
 
     if (sIdInt != null) {
