@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../data/models/subscription_plan_model.dart';
 import '../../providers/subscription_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
+import '../../widgets/humora_empty_state.dart';
 import 'checkout_screen.dart';
 
 class SubscriptionPlansScreen extends StatefulWidget {
@@ -52,27 +53,13 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                 onBackTap: () => Navigator.of(context).pop(),
               ),
               Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(LucideIcons.crown, size: 48, color: AppColors.textMuted),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Belum ada paket langganan aktif.',
-                        style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-                      ),
-                      const SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: () => context.read<SubscriptionProvider>().fetchPlans(),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryYellow,
-                          foregroundColor: AppColors.primaryDark,
-                        ),
-                        child: const Text('Muat Ulang'),
-                      ),
-                    ],
-                  ),
+                child: HumoraEmptyState(
+                  icon: LucideIcons.crown,
+                  title: 'Paket Belum Tersedia',
+                  subtitle: 'Saat ini belum ada pilihan paket VIP yang aktif. Silakan hubungi admin atau muat ulang halaman.',
+                  buttonText: 'Muat Ulang Paket',
+                  buttonIcon: LucideIcons.rotateCcw,
+                  onButtonPressed: () => context.read<SubscriptionProvider>().fetchPlans(),
                 ),
               ),
             ],
