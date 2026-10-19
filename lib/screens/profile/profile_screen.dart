@@ -29,7 +29,7 @@ class ProfileScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 90),
+          padding: const EdgeInsets.only(bottom: 100),
           child: Column(
             children: [
               // Top Pill App Bar

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:humora_mobile/main.dart';
@@ -28,6 +29,45 @@ void main() {
     expect(find.text('Cari'), findsOneWidget);
     expect(find.text('Riwayat'), findsWidgets);
     expect(find.text('Profil'), findsOneWidget);
+  });
+
+  testWidgets('Navbar responsive test on narrow screens and profil tab selection', (WidgetTester tester) async {
+    // Test on narrow phone width (360x640)
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => AuthProvider()),
+          ChangeNotifierProvider(create: (_) => SeriesProvider()),
+          ChangeNotifierProvider(create: (_) => HistoryProvider()),
+          ChangeNotifierProvider(create: (_) => NotificationProvider()),
+          ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ],
+        child: const HumoraApp(),
+      ),
+    );
+
+    // Tap Profil tab (index 3)
+    await tester.tap(find.text('Profil'));
+    await tester.pumpAndSettle();
+
+    // Verify profil screen is rendered without overflow
+    expect(find.text('Profil Saya'), findsOneWidget);
+
+    // Tap Riwayat tab (index 2)
+    await tester.tap(find.text('Riwayat').last);
+    await tester.pumpAndSettle();
+
+    // Tap Cari tab (index 1)
+    await tester.tap(find.text('Cari'));
+    await tester.pumpAndSettle();
+
+    // Tap Beranda tab (index 0)
+    await tester.tap(find.text('Beranda'));
+    await tester.pumpAndSettle();
   });
 
   test('AuthProvider 4 user tiers access control test', () {

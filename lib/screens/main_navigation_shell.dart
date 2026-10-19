@@ -114,9 +114,12 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             left: 0,
             right: 0,
             bottom: 0,
-            child: CustomBottomNavBar(
-              currentIndex: _currentIndex,
-              onTap: _onTabSelected,
+            child: SafeArea(
+              top: false,
+              child: CustomBottomNavBar(
+                currentIndex: _currentIndex,
+                onTap: _onTabSelected,
+              ),
             ),
           ),
         ],
