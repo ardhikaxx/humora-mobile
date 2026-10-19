@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/theme/app_colors.dart';
-import '../../data/dummy_data.dart';
+import '../../core/constants/app_assets.dart';
 import '../../widgets/custom_pill_app_bar.dart';
 
 class AboutScreen extends StatelessWidget {
@@ -46,10 +46,10 @@ class AboutScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: Image.asset(
-                              DummyData.logoHumoraKomersial,
+                              AppAssets.logoHumoraKomersial,
                               fit: BoxFit.contain,
                               errorBuilder: (_, _, _) => Image.asset(
-                                DummyData.logoHumora,
+                                AppAssets.logoHumora,
                                 fit: BoxFit.contain,
                               ),
                             ),
@@ -121,7 +121,7 @@ class AboutScreen extends StatelessWidget {
                             ),
                             padding: const EdgeInsets.all(6),
                             child: Image.asset(
-                              DummyData.logoHumora,
+                              AppAssets.logoHumora,
                               fit: BoxFit.contain,
                             ),
                           ),
