@@ -88,6 +88,11 @@ class AppTheme {
           side: const BorderSide(color: AppColors.border, width: 1.2),
         ),
       ),
+      dividerTheme: const DividerThemeData(
+        color: AppColors.dividerSubtle,
+        space: 1,
+        thickness: 0.8,
+      ),
     );
   }
 }
