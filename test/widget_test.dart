@@ -7,11 +7,22 @@ import 'package:humora_mobile/providers/auth_provider.dart';
 import 'package:humora_mobile/providers/series_provider.dart';
 import 'package:humora_mobile/providers/history_provider.dart';
 import 'package:humora_mobile/providers/notification_provider.dart';
+import 'package:flutter/services.dart';
 import 'package:humora_mobile/providers/settings_provider.dart';
 import 'package:humora_mobile/providers/subscription_provider.dart';
 import 'package:humora_mobile/providers/transaction_provider.dart';
 
 void main() {
+  setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
+      (MethodCall methodCall) async {
+        return null;
+      },
+    );
+  });
   testWidgets('Humora app smoke test', (WidgetTester tester) async {
     await tester.pumpWidget(
       MultiProvider(
@@ -110,5 +121,23 @@ void main() {
     expect(auth.canAccessEpisode(1), isTrue);
     expect(auth.canAccessEpisode(2), isTrue);
     expect(auth.canAccessEpisode(3), isFalse);
+  });
+
+  test('Video 2 auto-transition to Video 3 paywall rule validation', () {
+    final guestAuth = AuthProvider()..switchTier(UserTier.guest);
+    final freeAuth = AuthProvider()..switchTier(UserTier.free);
+    final vipAuth = AuthProvider()..switchTier(UserTier.premium);
+
+    // Episode 2 is playable for free and guest
+    expect(guestAuth.canAccessEpisode(2), isTrue);
+    expect(freeAuth.canAccessEpisode(2), isTrue);
+    expect(vipAuth.canAccessEpisode(2), isTrue);
+
+    // Next Episode (Episode 3) requires VIP paywall modal for guest and free
+    expect(guestAuth.canAccessEpisode(3), isFalse);
+    expect(freeAuth.canAccessEpisode(3), isFalse);
+
+    // But VIP can seamlessly access Episode 3
+    expect(vipAuth.canAccessEpisode(3), isTrue);
   });
 }
