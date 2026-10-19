@@ -37,21 +37,13 @@ class AboutScreen extends StatelessWidget {
                       ),
                       child: Column(
                         children: [
-                          // App Logo Banner
-                          Container(
-                            height: 80,
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryYellow,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
+                          // App Logo Full Rounded (No Yellow Background)
+                          ClipOval(
                             child: Image.asset(
-                              AppAssets.logoHumoraKomersial,
-                              fit: BoxFit.contain,
-                              errorBuilder: (_, _, _) => Image.asset(
-                                AppAssets.logoHumora,
-                                fit: BoxFit.contain,
-                              ),
+                              AppAssets.logoHumora,
+                              width: 88,
+                              height: 88,
+                              fit: BoxFit.cover,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -112,17 +104,13 @@ class AboutScreen extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          Container(
-                            width: 50,
-                            height: 50,
-                            decoration: const BoxDecoration(
-                              color: AppColors.primaryYellow,
-                              shape: BoxShape.circle,
-                            ),
-                            padding: const EdgeInsets.all(6),
+                          // Mascot Logo Full Rounded (No Yellow Background)
+                          ClipOval(
                             child: Image.asset(
                               AppAssets.logoHumora,
-                              fit: BoxFit.contain,
+                              width: 50,
+                              height: 50,
+                              fit: BoxFit.cover,
                             ),
                           ),
                           const SizedBox(width: 14),
