@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
+import '../../widgets/humora_empty_state.dart';
 
 class SubscriptionDetailScreen extends StatelessWidget {
   const SubscriptionDetailScreen({super.key});
@@ -220,28 +221,16 @@ class SubscriptionDetailScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 36),
                   decoration: BoxDecoration(
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: AppColors.border, width: 1.2),
                   ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        LucideIcons.creditCard,
-                        size: 36,
-                        color: AppColors.textMuted.withValues(alpha: 0.5),
-                      ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        'Belum ada catatan transaksi di sesi ini.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textMuted,
-                        ),
-                      ),
-                    ],
+                  child: const HumoraEmptyState(
+                    compact: true,
+                    icon: LucideIcons.receiptText,
+                    title: 'Belum Ada Catatan Transaksi',
+                    subtitle: 'Riwayat pembayaran paket VIP akun kamu akan dicatat dan dapat dilihat secara lengkap di sini.',
                   ),
                 ),
               ),
