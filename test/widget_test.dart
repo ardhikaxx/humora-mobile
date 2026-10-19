@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:humora_mobile/main.dart';
 import 'package:humora_mobile/data/models/user_model.dart';
+import 'package:humora_mobile/data/models/series_model.dart';
 import 'package:humora_mobile/providers/auth_provider.dart';
 import 'package:humora_mobile/providers/series_provider.dart';
 import 'package:humora_mobile/providers/history_provider.dart';
@@ -16,6 +18,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:humora_mobile/screens/auth/forgot_password_screen.dart';
 import 'package:humora_mobile/screens/auth/reset_password_screen.dart';
 import 'package:humora_mobile/screens/notification/notification_screen.dart';
+import 'package:humora_mobile/core/theme/app_colors.dart';
+import 'package:humora_mobile/screens/home/home_screen.dart';
+import 'package:humora_mobile/screens/profile/profile_screen.dart';
+import 'package:humora_mobile/screens/about/about_screen.dart';
+import 'package:humora_mobile/screens/legal/terms_screen.dart';
+import 'package:humora_mobile/screens/legal/privacy_policy_screen.dart';
 import 'package:humora_mobile/core/services/permission_service.dart';
 import 'package:humora_mobile/core/services/local_notification_service.dart';
 
@@ -236,7 +244,7 @@ void main() {
     PermissionService.disableAutoPromptForTesting = true;
   });
 
-  testWidgets('NotificationScreen test sheet displays all 5 notification options and triggers without error', (WidgetTester tester) async {
+  testWidgets('NotificationScreen renders correctly and marks all as read', (WidgetTester tester) async {
     tester.view.physicalSize = const Size(500, 1000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -255,26 +263,197 @@ void main() {
 
     // Verify NotificationScreen loaded
     expect(find.text('Notifikasi'), findsOneWidget);
-    expect(find.text('Tes Push'), findsOneWidget);
+    expect(find.text('Tandai dibaca'), findsOneWidget);
+    expect(find.text('Tes Push'), findsNothing);
 
-    // Tap "Tes Push" button to open modal bottom sheet
-    await tester.tap(find.text('Tes Push'));
+    // Tap "Tandai dibaca"
+    await tester.tap(find.text('Tandai dibaca'));
     await tester.pumpAndSettle();
 
-    // Verify all 5 notification types exist in the modal sheet
-    expect(find.text('Simulasi Push Notifikasi'), findsOneWidget);
-    expect(find.text('Verifikasi Premium Disetujui Admin'), findsOneWidget);
-    expect(find.text('Video / Episode Baru Dirilis'), findsOneWidget);
-    expect(find.text('Video Populer / Trending'), findsOneWidget);
-    expect(find.text('Ajakan Berlangganan (Upgrade VIP)'), findsOneWidget);
-    expect(find.text('Masa Langganan Segera Habis'), findsOneWidget);
+    // Verify confirmation snackbar
+    expect(find.text('Semua notifikasi telah ditandai dibaca.'), findsOneWidget);
+  });
 
-    // Tap on "Verifikasi Premium Disetujui Admin"
-    await tester.tap(find.text('Verifikasi Premium Disetujui Admin'));
+  testWidgets('AboutScreen renders legal items, excludes Hak Cipta, and navigates to TermsScreen and PrivacyPolicyScreen', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(500, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AboutScreen(),
+      ),
+    );
     await tester.pumpAndSettle();
 
-    // Verify snackbar confirmation is displayed
-    expect(find.text('Notifikasi VIP Disetujui berhasil dikirim!'), findsOneWidget);
+    // 1. Verify "Tentang HUMORA" is loaded
+    expect(find.text('Tentang HUMORA'), findsOneWidget);
+
+    // 2. Verify "Hak Cipta & Lisensi Konten" is removed
+    expect(find.text('Hak Cipta & Lisensi Konten'), findsNothing);
+
+    // 3. Scroll to "Syarat & Ketentuan Layanan" and tap
+    await tester.ensureVisible(find.text('Syarat & Ketentuan Layanan'));
+    await tester.pumpAndSettle();
+    expect(find.text('Syarat & Ketentuan Layanan'), findsOneWidget);
+    expect(find.text('Kebijakan Privasi'), findsOneWidget);
+
+    await tester.tap(find.text('Syarat & Ketentuan Layanan'));
+    await tester.pumpAndSettle();
+
+    // 4. Verify TermsScreen is opened with content
+    expect(find.byType(TermsScreen), findsOneWidget);
+    expect(find.text('DOKUMEN HUKUM RESMI'), findsOneWidget);
+    expect(find.text('Penerimaan Ketentuan'), findsOneWidget);
+    expect(find.text('Langganan VIP & Verifikasi Pembayaran'), findsOneWidget);
+
+    // Pop back to AboutScreen
+    await tester.tap(find.byIcon(LucideIcons.chevronLeft));
+    await tester.pumpAndSettle();
+
+    // 5. Scroll to and tap "Kebijakan Privasi"
+    await tester.ensureVisible(find.text('Kebijakan Privasi'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kebijakan Privasi'));
+    await tester.pumpAndSettle();
+
+    // 6. Verify PrivacyPolicyScreen is opened with content
+    expect(find.byType(PrivacyPolicyScreen), findsOneWidget);
+    expect(find.text('KEPATUHAN UU PDP RI'), findsOneWidget);
+    expect(find.text('Penggunaan Izin Native Perangkat (Permissions)'), findsOneWidget);
+    expect(find.text('Jaminan Keamanan Data'), findsOneWidget);
+  });
+
+  testWidgets('TermsScreen renders all legal articles and details', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(500, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: TermsScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Syarat & Ketentuan'), findsOneWidget);
+    expect(find.text('Syarat & Ketentuan Layanan'), findsOneWidget);
+    expect(find.text('PASAL 01'), findsOneWidget);
+    expect(find.text('Penerimaan Ketentuan'), findsOneWidget);
+    expect(find.text('PASAL 03'), findsOneWidget);
+    expect(find.text('Hak Kekayaan Intelektual & Lisensi Konten'), findsOneWidget);
+    expect(find.text('PASAL 04'), findsOneWidget);
+    expect(find.text('Langganan VIP & Verifikasi Pembayaran'), findsOneWidget);
+  });
+
+  testWidgets('PrivacyPolicyScreen renders UU PDP compliance and permissions disclosures', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(500, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: PrivacyPolicyScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Kebijakan Privasi'), findsOneWidget);
+    expect(find.text('Kebijakan Privasi HUMORA'), findsOneWidget);
+    expect(find.text('KEPATUHAN UU PDP RI'), findsOneWidget);
+    expect(find.text('BAGIAN 01'), findsOneWidget);
+    expect(find.text('Komitmen Privasi & Landasan Regulasi'), findsOneWidget);
+    expect(find.text('BAGIAN 03'), findsOneWidget);
+    expect(find.text('Penggunaan Izin Native Perangkat (Permissions)'), findsOneWidget);
+    expect(find.text('privacy@humora.id'), findsOneWidget);
+  });
+
+  testWidgets('HomeScreen section headers use Lucide icons and no emoticons', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(500, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final seriesProv = SeriesProvider();
+    seriesProv.setSeriesForTesting([
+      const SeriesModel(
+        id: '1',
+        title: 'Keluarga Cemoro',
+        synopsis: 'Komedi keluarga',
+        genre: 'Komedi',
+        releaseYear: '2026',
+        totalEpisodes: 5,
+        likes: '100',
+        thumbnailPath: '',
+        isPopular: true,
+        isNew: true,
+        isFreeAvailable: true,
+        episodes: [],
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => AuthProvider()),
+          ChangeNotifierProvider.value(value: seriesProv),
+          ChangeNotifierProvider(create: (_) => HistoryProvider()),
+          ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ],
+        child: const MaterialApp(
+          home: HomeScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify "Video Populer" exists without 🌶️ emoticon
+    expect(find.text('Video Populer'), findsOneWidget);
+    expect(find.textContaining('🌶️'), findsNothing);
+
+    // Verify "Terbaru di HUMORA" exists without ✨ emoticon
+    expect(find.text('Terbaru di HUMORA'), findsOneWidget);
+    expect(find.textContaining('✨'), findsNothing);
+
+    // Verify Lucide icons are present
+    expect(find.byIcon(LucideIcons.flame), findsWidgets);
+    expect(find.byIcon(LucideIcons.sparkles), findsWidgets);
+  });
+
+  testWidgets('ProfileScreen and AboutScreen use subtle dividers and borders', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(500, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    // 1. ProfileScreen
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ],
+        child: const MaterialApp(
+          home: ProfileScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final profileDividers = tester.widgetList<Divider>(find.byType(Divider));
+    expect(profileDividers, isNotEmpty);
+    for (final divider in profileDividers) {
+      expect(divider.color, equals(AppColors.dividerSubtle));
+    }
+
+    // 2. AboutScreen
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AboutScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final aboutDividers = tester.widgetList<Divider>(find.byType(Divider));
+    expect(aboutDividers, isNotEmpty);
+    expect(aboutDividers.first.color, equals(AppColors.dividerSubtle));
   });
 }
 
