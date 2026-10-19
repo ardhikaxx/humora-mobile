@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/theme/app_colors.dart';
-import '../../data/dummy_data.dart';
+import '../../data/faq_data.dart';
 import '../../widgets/custom_pill_app_bar.dart';
 
 class HelpCenterScreen extends StatefulWidget {
@@ -236,8 +236,8 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                           ),
                           const SizedBox(height: 14),
 
-                          ...List.generate(DummyData.faqs.length, (idx) {
-                            final faq = DummyData.faqs[idx];
+                          ...List.generate(FaqData.faqs.length, (idx) {
+                            final faq = FaqData.faqs[idx];
                             final isExpanded = _expandedFaqIndices.contains(idx);
 
                             return Column(
