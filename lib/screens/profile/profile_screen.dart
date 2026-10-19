@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
-import '../../data/dummy_data.dart';
+import '../../core/constants/app_assets.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
+import '../../widgets/initials_avatar.dart';
 import '../about/about_screen.dart';
 import '../auth/login_screen.dart';
 import '../auth/register_screen.dart';
@@ -124,7 +125,7 @@ class ProfileScreen extends StatelessWidget {
             ),
             padding: const EdgeInsets.all(10),
             child: Image.asset(
-              DummyData.logoHumora,
+              AppAssets.logoHumora,
               fit: BoxFit.contain,
               errorBuilder: (_, _, _) => const Icon(
                 LucideIcons.smile,
@@ -240,18 +241,11 @@ class ProfileScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFEF3C7),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Icon(
-              LucideIcons.user,
-              color: Color(0xFFD97706),
-              size: 26,
-            ),
+          InitialsAvatar(
+            name: auth.user.name,
+            initials: auth.user.displayInitials,
+            size: 52,
+            fontSize: 18,
           ),
           const SizedBox(width: 14),
           Expanded(
