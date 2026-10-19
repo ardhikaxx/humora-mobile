@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
-import '../../data/dummy_data.dart';
+import '../../core/constants/app_assets.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
 import 'login_screen.dart';
@@ -33,7 +33,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  void _handleRegister() {
+  Future<void> _handleRegister() async {
     if (!_agreedToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -47,22 +47,64 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final name = _nameController.text.trim();
     final identifier = _identifierController.text.trim();
     final password = _passwordController.text.trim();
+    final confirm = _confirmPasswordController.text.trim();
 
-    context.read<AuthProvider>().register(
-      fullName: name.isNotEmpty ? name : 'Ardhika Pradana',
-      identifier: identifier.isNotEmpty ? identifier : 'ardhika@humora.id',
+    if (name.isEmpty || identifier.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Semua field wajib diisi dengan benar.'),
+          backgroundColor: Color(0xFFD97706),
+        ),
+      );
+      return;
+    }
+
+    if (password != confirm) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Konfirmasi kata sandi tidak cocok.'),
+          backgroundColor: AppColors.red,
+        ),
+      );
+      return;
+    }
+
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Kata sandi minimal 6 karakter.'),
+          backgroundColor: AppColors.red,
+        ),
+      );
+      return;
+    }
+
+    final success = await context.read<AuthProvider>().register(
+      fullName: name,
+      identifier: identifier,
       password: password,
     );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Akun berhasil dibuat! Selamat datang di HUMORA.'),
-        backgroundColor: AppColors.primaryDark,
-        duration: Duration(seconds: 2),
-      ),
-    );
+    if (!mounted) return;
 
-    Navigator.of(context).pop();
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Akun berhasil dibuat! Selamat datang di HUMORA.'),
+          backgroundColor: AppColors.primaryDark,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      Navigator.of(context).pop();
+    } else {
+      final err = context.read<AuthProvider>().errorMessage ?? 'Pendaftaran gagal.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(err),
+          backgroundColor: AppColors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -89,7 +131,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 padding: const EdgeInsets.all(12),
                 child: Image.asset(
-                  DummyData.logoHumora,
+                  AppAssets.logoHumora,
                   fit: BoxFit.contain,
                   errorBuilder: (_, _, _) => const Icon(
                     LucideIcons.smile,
