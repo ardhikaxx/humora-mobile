@@ -6,9 +6,12 @@ import '../../core/constants/app_assets.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
 import 'register_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final String? initialEmail;
+
+  const LoginScreen({super.key, this.initialEmail});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -16,11 +19,22 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   int _selectedTabIndex = 0; // 0 for Email, 1 for Nomor HP
-  final TextEditingController _emailController = TextEditingController(text: 'ardhika@humora.id');
-  final TextEditingController _phoneController = TextEditingController(text: '081288997766');
+  late final TextEditingController _emailController;
+  final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _rememberMe = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController(
+      text: widget.initialEmail ?? '',
+    );
+    if (widget.initialEmail != null && widget.initialEmail!.isNotEmpty) {
+      _selectedTabIndex = 0;
+    }
+  }
 
   @override
   void dispose() {
@@ -88,18 +102,13 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Logo Center
-              Container(
-                width: 88,
-                height: 88,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.primaryYellow,
-                ),
-                padding: const EdgeInsets.all(12),
+              // Logo Center (No Yellow Background)
+              ClipOval(
                 child: Image.asset(
                   AppAssets.logoHumora,
-                  fit: BoxFit.contain,
+                  width: 88,
+                  height: 88,
+                  fit: BoxFit.cover,
                   errorBuilder: (_, _, _) => const Icon(
                     LucideIcons.smile,
                     size: 48,
@@ -107,7 +116,41 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
+
+              // Brand Tagline: "scroll, laugh, repeat"
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.accentPurpleSoft,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppColors.accentPurple.withValues(alpha: 0.25),
+                    width: 1,
+                  ),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      LucideIcons.sparkles,
+                      size: 13,
+                      color: AppColors.accentPurple,
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      'scroll, laugh, repeat',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.accentPurple,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
 
               // Title & Subtitle
               const Text(
@@ -217,8 +260,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               decoration: InputDecoration(
                                 border: InputBorder.none,
                                 hintText: _selectedTabIndex == 0
-                                    ? 'nama@email.com'
-                                    : '0812xxxxxxxx',
+                                    ? 'Masukkan alamat email'
+                                    : 'Masukkan nomor handphone',
                                 hintStyle: const TextStyle(
                                   fontSize: 13,
                                   color: AppColors.textMuted,
@@ -245,9 +288,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         GestureDetector(
                           onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Tautan reset sandi telah dikirim ke email/HP.'),
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const ForgotPasswordScreen(),
                               ),
                             );
                           },
@@ -284,7 +327,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               obscureText: _obscurePassword,
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
-                                hintText: 'Masukkan kata sandi...',
+                                hintText: 'Masukkan kata sandi',
                                 hintStyle: TextStyle(
                                   fontSize: 13,
                                   color: AppColors.textMuted,
@@ -339,11 +382,13 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        const Text(
-                          'Ingat saya di perangkat ini',
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            color: AppColors.textSecondary,
+                        const Expanded(
+                          child: Text(
+                            'Ingat saya di perangkat ini',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                         ),
                       ],
@@ -391,8 +436,9 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 20),
 
               // Bottom Link
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              Wrap(
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   const Text(
                     'Belum memiliki akun HUMORA? ',
