@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import '../core/network/api_service.dart';
+import '../core/services/local_notification_service.dart';
 import '../data/models/user_model.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -47,6 +48,7 @@ class AuthProvider extends ChangeNotifier {
       final res = await _api.getMe();
       if (res.data != null && res.data['data'] != null && res.data['data']['user'] != null) {
         _user = UserModel.fromJson(res.data['data']['user'] as Map<String, dynamic>);
+        _checkSubscriptionNotifications();
       }
     } catch (_) {
       // If token expired/invalid, clear it and fall back to guest
@@ -54,6 +56,16 @@ class AuthProvider extends ChangeNotifier {
       _user = _defaultGuestUser;
     } finally {
       notifyListeners();
+    }
+  }
+
+  void _checkSubscriptionNotifications() {
+    if (_user.isPremium && _user.remainingDays != null) {
+      if (_user.remainingDays! <= 3 && _user.remainingDays! >= 0) {
+        LocalNotificationService.showExpiringSubscriptionNotification(
+          remainingDays: _user.remainingDays!,
+        );
+      }
     }
   }
 
@@ -239,6 +251,7 @@ class AuthProvider extends ChangeNotifier {
       if (res.data != null && res.data['data'] != null && res.data['data']['user'] != null) {
         _user = UserModel.fromJson(res.data['data']['user'] as Map<String, dynamic>);
         notifyListeners();
+        _checkSubscriptionNotifications();
       }
     } catch (_) {}
   }
@@ -255,6 +268,50 @@ class AuthProvider extends ChangeNotifier {
       _user = _defaultGuestUser;
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<bool> verifyForgotPasswordEmail(String email) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final res = await _api.verifyForgotPasswordEmail(email.trim());
+      _isLoading = false;
+      notifyListeners();
+      return res.data != null && res.data['success'] == true;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = _parseError(e);
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> resetPassword({
+    required String email,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final res = await _api.resetPassword(
+        email: email.trim(),
+        password: password,
+        passwordConfirmation: passwordConfirmation,
+      );
+      _isLoading = false;
+      notifyListeners();
+      return res.data != null && res.data['success'] == true;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = _parseError(e);
+      notifyListeners();
+      return false;
     }
   }
 
