@@ -1,11 +1,11 @@
 {
-    "name": "humora_mobile",
-    "short_name": "humora_mobile",
+    "name": "Humora",
+    "short_name": "Humora",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FECE00",
+    "theme_color": "#43135C",
+    "description": "Humora - Platform Video Komedi Pendek",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
