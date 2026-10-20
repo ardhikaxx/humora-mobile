@@ -60,15 +60,6 @@ class AccountSettingsScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
 
-                      // Mode Hemat Kuota
-                      _buildSwitchRow(
-                        title: 'Mode Hemat Kuota Seluler',
-                        subtitle: 'Gunakan resolusi standar 480p saat di jaringan seluler',
-                        value: settings.dataSaverMode,
-                        onChanged: (val) => settings.toggleDataSaver(val),
-                      ),
-                      const SizedBox(height: 16),
-
                       // Kecepatan Putar Default
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
