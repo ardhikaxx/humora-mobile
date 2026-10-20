@@ -33,72 +33,76 @@ class _SearchScreenState extends State<SearchScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 100),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 8),
 
-              // Search Bar Pill
-              Padding(
+            // Fixed Search Bar Pill
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                height: 52,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: AppColors.border, width: 1.2),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x08000000),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Container(
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(color: AppColors.border, width: 1.2),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x08000000),
-                        blurRadius: 10,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        LucideIcons.search,
-                        color: AppColors.accentPurple,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          onChanged: (val) => seriesProv.setSearchQuery(val),
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            hintText: 'Cari video, judul, atau genre...',
-                            hintStyle: TextStyle(
-                              fontSize: 13.5,
-                              color: AppColors.textMuted,
-                            ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      LucideIcons.search,
+                      color: AppColors.accentPurple,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (val) => seriesProv.setSearchQuery(val),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          hintText: 'Cari video, judul, atau genre...',
+                          hintStyle: TextStyle(
+                            fontSize: 13.5,
+                            color: AppColors.textMuted,
                           ),
                         ),
                       ),
-                      if (_searchController.text.isNotEmpty)
-                        GestureDetector(
-                          onTap: () {
-                            _searchController.clear();
-                            seriesProv.setSearchQuery('');
-                          },
-                          child: const Icon(
-                            LucideIcons.x,
-                            size: 18,
-                            color: AppColors.textSecondary,
-                          ),
+                    ),
+                    if (_searchController.text.isNotEmpty)
+                      GestureDetector(
+                        onTap: () {
+                          _searchController.clear();
+                          seriesProv.setSearchQuery('');
+                        },
+                        child: const Icon(
+                          LucideIcons.x,
+                          size: 18,
+                          color: AppColors.textSecondary,
                         ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 20),
+            ),
+            const SizedBox(height: 12),
 
-              // Title and Subtitle
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 100),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title and Subtitle
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
@@ -327,7 +331,10 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         ),
       ),
-    );
+    ],
+  ),
+),
+);
   }
 
   Widget _buildWideFeaturedCard(BuildContext context, dynamic series) {
