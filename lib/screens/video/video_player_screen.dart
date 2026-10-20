@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -48,6 +49,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   bool _isDisposed = false;
   bool _isPopping = false;
   bool _hasTriggeredCompletion = false;
+  String _viewingSessionId = '';
+  int _sessionWatchedSeconds = 0;
+  Timer? _heartbeatTimer;
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
@@ -108,6 +113,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     _isPopping = true;
     routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
+    _heartbeatTimer?.cancel();
+    _sendViewingHeartbeat();
     _syncWatchHistory();
     _disposePlayer();
     super.dispose();
@@ -130,6 +137,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   /// Safely stops playback when navigating away or unmounting without calling setState during build
   void _stopVideo() {
     _isPopping = true;
+    _heartbeatTimer?.cancel();
+    _sendViewingHeartbeat();
     _hideControlsTimer?.cancel();
     if (_videoController != null) {
       try {
@@ -143,6 +152,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
   /// Pauses playback while remaining on the screen (e.g. paywall modal shown or backgrounded)
   void _stopVideoPlaybackOnly() {
+    _heartbeatTimer?.cancel();
+    _sendViewingHeartbeat();
     _hideControlsTimer?.cancel();
     if (_videoController != null) {
       try {
@@ -232,6 +243,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     _hasTriggeredCompletion = true;
     debugPrint('HUMORA VIDEO COMPLETED: Episode $_currentEpisodeNumber');
 
+    if (_sessionWatchedSeconds < dur.inSeconds) {
+      _sessionWatchedSeconds = dur.inSeconds;
+    }
+    _sendViewingHeartbeat();
+
     // Sync progress as completed
     _syncWatchHistory();
 
@@ -306,6 +322,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _hasVideoError = false;
     });
 
+    _heartbeatTimer?.cancel();
+    _viewingSessionId = 'mob_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(99999)}';
+    _sessionWatchedSeconds = 0;
+
     try {
       final token = await ApiService().getToken();
       final headers = <String, String>{
@@ -362,6 +382,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       });
 
       _scheduleHideControls();
+      _sendViewingHeartbeat();
+      _startHeartbeatTimer();
       _syncWatchHistory();
     } catch (e, st) {
       debugPrint('HUMORA VIDEO PLAYBACK ERROR: $e\n$st');
@@ -412,6 +434,57 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     } catch (_) {}
   }
 
+  void _startHeartbeatTimer() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted || _isDisposed || _isPopping) return;
+      if (_videoController != null && _videoController!.value.isPlaying) {
+        _sessionWatchedSeconds += 4;
+        _sendViewingHeartbeat();
+      }
+    });
+  }
+
+  void _sendViewingHeartbeat() {
+    try {
+      if (!mounted || _viewingSessionId.isEmpty) return;
+      final seriesProv = context.read<SeriesProvider>();
+      final series = seriesProv.getSeriesById(widget.seriesId) ?? seriesProv.featuredSeries;
+      final episode = series.episodes.firstWhere(
+        (e) => e.episodeNumber == _currentEpisodeNumber,
+        orElse: () => series.episodes.isNotEmpty ? series.episodes.first : const EpisodeModel(
+          id: '1',
+          seriesId: '1',
+          episodeNumber: 1,
+          title: 'Episode 1',
+          synopsis: '',
+          duration: '02:00',
+          likes: '0',
+          thumbnailPath: '',
+        ),
+      );
+
+      final epId = int.tryParse(episode.id);
+      if (epId == null) return;
+      final seriesIdInt = int.tryParse(series.id);
+      final lastPos = _currentPosition.inSeconds;
+      final dur = _totalDuration.inSeconds > 0
+          ? _totalDuration.inSeconds
+          : (episode.durationSeconds > 0 ? episode.durationSeconds : 120);
+      final progressPercent = (_currentProgress * 100).toInt();
+
+      _apiService.trackVideoView(
+        episodeId: epId,
+        seriesId: seriesIdInt,
+        sessionId: _viewingSessionId,
+        watchedSeconds: _sessionWatchedSeconds,
+        lastPosition: lastPos,
+        durationSeconds: dur,
+        progressPercent: progressPercent,
+      ).ignore();
+    } catch (_) {}
+  }
+
   void _playEpisode(int episodeNumber) {
     final auth = context.read<AuthProvider>();
     if (!auth.canAccessEpisode(episodeNumber)) {
@@ -420,6 +493,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       return;
     }
 
+    _heartbeatTimer?.cancel();
+    _sendViewingHeartbeat();
     _syncWatchHistory();
     _hasTriggeredCompletion = false;
 
@@ -439,6 +514,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     if (_videoController!.value.isPlaying) {
       _videoController!.pause();
       _hideControlsTimer?.cancel();
+      _heartbeatTimer?.cancel();
+      _sendViewingHeartbeat();
       _safeSetState(() {
         _isPlaying = false;
         _showControls = true;
@@ -450,6 +527,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
         _showControls = true;
       });
       _scheduleHideControls();
+      _startHeartbeatTimer();
+      _sendViewingHeartbeat();
     }
   }
 
