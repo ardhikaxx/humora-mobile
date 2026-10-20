@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
+import 'package:auto_size_text/auto_size_text.dart';
+import 'package:floating/floating.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -7,6 +10,10 @@ import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/network/api_config.dart';
 import '../../core/network/api_service.dart';
+import '../../core/services/humora_cache_service.dart';
+import '../../core/services/floating_service.dart';
+import '../../core/services/vibration_service.dart';
+import '../../core/services/wakelock_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/episode_model.dart';
 import '../../main.dart';
@@ -140,6 +147,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     _heartbeatTimer?.cancel();
     _sendViewingHeartbeat();
     _hideControlsTimer?.cancel();
+    WakelockService.disable();
     if (_videoController != null) {
       try {
         _videoController!.removeListener(_onVideoControllerUpdate);
@@ -155,6 +163,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     _heartbeatTimer?.cancel();
     _sendViewingHeartbeat();
     _hideControlsTimer?.cancel();
+    WakelockService.disable();
     if (_videoController != null) {
       try {
         _videoController!.pause();
@@ -168,6 +177,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   /// Full clean disposal of active player controller
   void _disposePlayer() {
     _hideControlsTimer?.cancel();
+    WakelockService.disable();
     if (_videoController != null) {
       try {
         _videoController!.removeListener(_onVideoControllerUpdate);
@@ -357,10 +367,28 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       final oldController = _videoController;
       oldController?.removeListener(_onVideoControllerUpdate);
 
-      final newController = VideoPlayerController.networkUrl(
-        Uri.parse(streamUrl),
-        httpHeaders: headers,
-      );
+      VideoPlayerController newController;
+      File? localCachedFile;
+
+      if (streamUrl.startsWith('http://') || streamUrl.startsWith('https://')) {
+        localCachedFile = await HumoraCacheService.getCachedVideoFile(streamUrl);
+      }
+
+      if (localCachedFile != null) {
+        debugPrint('HUMORA VIDEO STREAM: Playing from local cache (0 data usage)');
+        newController = VideoPlayerController.file(localCachedFile);
+      } else {
+        newController = VideoPlayerController.networkUrl(
+          Uri.parse(streamUrl),
+          httpHeaders: headers,
+        );
+        // Pre-cache video in background for seamless replay without consuming quota
+        if (streamUrl.startsWith('http://') || streamUrl.startsWith('https://')) {
+          HumoraCacheService.downloadAndCacheFile(streamUrl).then((_) {
+            debugPrint('HUMORA VIDEO STREAM: Cached in background');
+          }).catchError((_) {});
+        }
+      }
 
       await newController.initialize();
       await oldController?.dispose();
@@ -372,6 +400,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
       newController.addListener(_onVideoControllerUpdate);
       newController.play();
+      WakelockService.enable();
 
       _safeSetState(() {
         _videoController = newController;
@@ -387,6 +416,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _syncWatchHistory();
     } catch (e, st) {
       debugPrint('HUMORA VIDEO PLAYBACK ERROR: $e\n$st');
+      WakelockService.disable();
       if (mounted && !_isDisposed && !_isPopping) {
         _safeSetState(() {
           _isControllerInitializing = false;
@@ -486,6 +516,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   }
 
   void _playEpisode(int episodeNumber) {
+    VibrationService.mediumImpact();
     final auth = context.read<AuthProvider>();
     if (!auth.canAccessEpisode(episodeNumber)) {
       _stopVideoPlaybackOnly();
@@ -510,9 +541,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
   void _togglePlayPause() {
     if (_videoController == null || !_videoController!.value.isInitialized) return;
+    VibrationService.lightImpact();
 
     if (_videoController!.value.isPlaying) {
       _videoController!.pause();
+      WakelockService.disable();
       _hideControlsTimer?.cancel();
       _heartbeatTimer?.cancel();
       _sendViewingHeartbeat();
@@ -522,6 +555,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       });
     } else {
       _videoController!.play();
+      WakelockService.enable();
       _safeSetState(() {
         _isPlaying = true;
         _showControls = true;
@@ -534,6 +568,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
   void _seekRelative(int seconds) {
     if (_videoController == null || !_videoController!.value.isInitialized) return;
+    VibrationService.lightImpact();
 
     final newPos = _videoController!.value.position + Duration(seconds: seconds);
     final clamped = Duration(
@@ -554,8 +589,43 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     return '$minutes:$seconds';
   }
 
+  Future<void> _enterPipMode() async {
+    VibrationService.lightImpact();
+    await FloatingService.enablePip(
+      aspectRatio: const Rational.landscape(),
+    );
+  }
+
+  Widget _buildPipPlayer() {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Center(
+        child: _videoController != null && _videoController!.value.isInitialized
+            ? AspectRatio(
+                aspectRatio: _videoController!.value.aspectRatio > 0
+                    ? _videoController!.value.aspectRatio
+                    : 16 / 9,
+                child: VideoPlayer(_videoController!),
+              )
+            : const Center(
+                child: CircularProgressIndicator(color: AppColors.primaryYellow),
+              ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (FloatingService.disableInTests) {
+      return _buildNormalScaffold(context);
+    }
+    return PiPSwitcher(
+      childWhenEnabled: _buildPipPlayer(),
+      childWhenDisabled: _buildNormalScaffold(context),
+    );
+  }
+
+  Widget _buildNormalScaffold(BuildContext context) {
     final seriesProv = context.watch<SeriesProvider>();
     final auth = context.watch<AuthProvider>();
     final series = seriesProv.getSeriesById(widget.seriesId) ?? seriesProv.featuredSeries;
@@ -654,7 +724,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    AutoSizeText(
                       'Video ${currentEpisode.episodeNumber}: ${currentEpisode.title}',
                       style: const TextStyle(
                         fontSize: 20,
@@ -662,18 +732,27 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                         color: AppColors.textPrimary,
                         letterSpacing: -0.3,
                       ),
+                      maxLines: 2,
+                      minFontSize: 15,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 6),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Video ${currentEpisode.episodeNumber} dari ${series.totalEpisodes} • ${currentEpisode.duration} • ${series.tag}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
+                        Expanded(
+                          child: AutoSizeText(
+                            'Video ${currentEpisode.episodeNumber} dari ${series.totalEpisodes} • ${currentEpisode.duration} • ${series.tag}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                            maxLines: 1,
+                            minFontSize: 10,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
@@ -707,6 +786,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                   children: [
                     GestureDetector(
                       onTap: () {
+                        VibrationService.lightImpact();
                         seriesProv.toggleEpisodeLike(currentEpisode.id);
                       },
                       child: Container(
@@ -1265,7 +1345,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
+                                AutoSizeText(
                                   currentEpisode.title,
                                   style: const TextStyle(
                                     fontSize: 14,
@@ -1273,15 +1353,17 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                                     color: Colors.white,
                                   ),
                                   maxLines: 1,
+                                  minFontSize: 11,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                Text(
+                                AutoSizeText(
                                   '${series.title} • Video ${currentEpisode.episodeNumber}',
                                   style: TextStyle(
                                     fontSize: 11,
                                     color: Colors.white.withValues(alpha: 0.75),
                                   ),
                                   maxLines: 1,
+                                  minFontSize: 9,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ],
@@ -1307,6 +1389,24 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                                 (_videoController?.value.volume ?? 1.0) > 0
                                     ? LucideIcons.volume2
                                     : LucideIcons.volumeX,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Picture-in-Picture Button
+                          GestureDetector(
+                            onTap: _enterPipMode,
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.55),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                LucideIcons.pictureInPicture,
                                 color: Colors.white,
                                 size: 18,
                               ),
