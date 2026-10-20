@@ -1,7 +1,7 @@
 # 📱 HUMORA — Aplikasi Mobile Streaming Serial Komedi
 
 <p align="center">
-  <img src="./assets/images/logo-humora.png" alt="HUMORA Logo" width="130"/>
+  <img src="./assets/logo-humora.png" alt="HUMORA Logo" width="130"/>
 </p>
 
 <p align="center">
@@ -10,11 +10,12 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Flutter-3.x-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter 3.x"/>
-  <img src="https://img.shields.io/badge/Dart-3.x-0175C2?style=for-the-badge&logo=dart&logoColor=white" alt="Dart 3.x"/>
+  <a href="https://flutter.dev"><img src="https://img.shields.io/badge/Flutter-3.x-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter 3.x"/></a>
+  <a href="https://dart.dev"><img src="https://img.shields.io/badge/Dart-3.x-0175C2?style=for-the-badge&logo=dart&logoColor=white" alt="Dart 3.x"/></a>
   <img src="https://img.shields.io/badge/Android-SDK%2021+-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android SDK 21+"/>
   <img src="https://img.shields.io/badge/State-Provider-FF6F00?style=for-the-badge" alt="Provider"/>
-  <img src="https://img.shields.io/badge/License-Proprietary-43135C?style=for-the-badge" alt="License"/>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-Proprietary-43135C?style=for-the-badge" alt="License"/></a>
+  <a href="https://github.com/ardhikaxx"><img src="https://img.shields.io/badge/Author-Yanuar%20Ardhika%20Rahmadhani%20Ubaidillah-181717?style=for-the-badge&logo=github&logoColor=white" alt="Author"/></a>
 </p>
 
 ---
@@ -138,6 +139,13 @@ Jika proyek aplikasi **HUMORA Mobile** ini bermanfaat bagi Anda, memberikan insp
 * [`CONTRIBUTING.md`](./CONTRIBUTING.md) — Standar kontribusi kode Flutter dan alur kerja Git.
 * [`SECURITY.md`](./SECURITY.md) — Kebijakan keamanan aplikasi mobile dan perlindungan privasi.
 * [`SUPPORT.md`](./SUPPORT.md) — Kanal bantuan teknis, FAQ, dan dukungan donasi.
+* [`LICENSE`](./LICENSE) — Ketentuan lisensi resmi **Proprietary Software License (All Rights Reserved)**.
+
+---
+
+## ⚠️ Ketentuan Penggunaan
+
+Proyek ini dilindungi lisensi **Proprietary Software License (All Rights Reserved)**. Anda **dilarang** menyalin, memodifikasi, mendistribusikan ulang, atau menjual kode ini tanpa izin tertulis dari pemilik hak cipta. Lihat [LICENSE](./LICENSE) untuk detail lengkap.
 
 ---
 
@@ -148,4 +156,4 @@ Dirancang dan dikembangkan dengan penuh dedikasi oleh:
 *Lead Software Architect & Maintainer*  
 Email Resmi: `ardhikayanuar58@gmail.com`
 
-Proyek ini dilindungi oleh lisensi **Proprietary Software License (All Rights Reserved)**.
+> **Copyright (c) 2026 Yanuar Ardhika Rahmadhani Ubaidillah (@ardhikaxx). All Rights Reserved.**
