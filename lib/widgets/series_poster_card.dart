@@ -1,3 +1,4 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../core/theme/app_colors.dart';
@@ -157,7 +158,7 @@ class SeriesPosterCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Text(
+                    AutoSizeText(
                       series.title,
                       style: const TextStyle(
                         fontSize: 13,
@@ -166,6 +167,7 @@ class SeriesPosterCard extends StatelessWidget {
                         height: 1.2,
                       ),
                       maxLines: 2,
+                      minFontSize: 9,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
