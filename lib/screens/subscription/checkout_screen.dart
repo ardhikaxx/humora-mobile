@@ -1,9 +1,11 @@
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import '../../core/network/api_config.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/payment_info_model.dart';
 import '../../data/models/subscription_plan_model.dart';
@@ -377,7 +379,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           _buildMethodButton(
             code: bank.code,
             label: _formatBankLabel(bank.bankName),
-            logoFile: bank.bankLogo,
             logoUrl: bank.bankLogoUrl,
           ),
         );
@@ -387,14 +388,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         _buildMethodButton(
           code: 'bca',
           label: 'BCA Transfer',
-          logoFile: 'bca.png',
         ),
       );
       buttons.add(
         _buildMethodButton(
           code: 'mandiri',
           label: 'Mandiri Transfer',
-          logoFile: 'mandiri.png',
         ),
       );
     }
@@ -451,50 +450,48 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Widget _buildBankLogoWidget({
-    String? code,
-    String? logoFile,
     String? logoUrl,
     double height = 20,
     double? width,
   }) {
-    final assetName = logoFile ?? (code != null ? '$code.png' : null);
-    if (assetName != null && assetName.isNotEmpty) {
-      final assetPath = 'assets/images/banks/$assetName';
-      return Image.asset(
-        assetPath,
+    if (logoUrl != null && logoUrl.isNotEmpty) {
+      String resolvedUrl = logoUrl.trim();
+      // Handle relative paths
+      if (resolvedUrl.startsWith('/')) {
+        final uri = Uri.tryParse(ApiConfig.baseUrl);
+        if (uri != null) {
+          resolvedUrl = '${uri.scheme}://${uri.authority}$resolvedUrl';
+        }
+      } else if (resolvedUrl.contains('localhost') || resolvedUrl.contains('127.0.0.1')) {
+        // Adapt localhost to active server IP when running on physical device or emulator
+        final uri = Uri.tryParse(ApiConfig.baseUrl);
+        if (uri != null && !uri.host.contains('localhost') && !uri.host.contains('127.0.0.1')) {
+          resolvedUrl = resolvedUrl
+              .replaceFirst('localhost:8000', uri.authority)
+              .replaceFirst('127.0.0.1:8000', uri.authority);
+        }
+      }
+
+      return CachedNetworkImage(
+        imageUrl: resolvedUrl,
         height: height,
         width: width,
         fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) {
-          if (logoUrl != null && logoUrl.isNotEmpty) {
-            return Image.network(
-              logoUrl,
-              height: height,
-              width: width,
-              fit: BoxFit.contain,
-              errorBuilder: (context, err, stack) => Icon(
-                LucideIcons.landmark,
-                size: height,
+        placeholder: (context, url) => SizedBox(
+          height: height,
+          width: width ?? height * 1.5,
+          child: const Center(
+            child: SizedBox(
+              width: 10,
+              height: 10,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.5,
                 color: AppColors.primaryPurple,
               ),
-            );
-          }
-          return Icon(
-            LucideIcons.landmark,
-            size: height,
-            color: AppColors.primaryPurple,
-          );
-        },
-      );
-    }
-
-    if (logoUrl != null && logoUrl.isNotEmpty) {
-      return Image.network(
-        logoUrl,
-        height: height,
-        width: width,
-        fit: BoxFit.contain,
-        errorBuilder: (context, err, stack) => Icon(
+            ),
+          ),
+        ),
+        errorWidget: (context, url, error) => Icon(
           LucideIcons.landmark,
           size: height,
           color: AppColors.primaryPurple,
@@ -512,7 +509,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget _buildMethodButton({
     required String code,
     required String label,
-    String? logoFile,
     String? logoUrl,
   }) {
     final isSelected = _selectedMethod == code;
@@ -562,8 +558,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         color: AppColors.primaryPurple,
                       )
                     : _buildBankLogoWidget(
-                        code: code,
-                        logoFile: logoFile,
                         logoUrl: logoUrl,
                         height: 20,
                       ),
@@ -692,8 +686,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   border: Border.all(color: AppColors.border),
                 ),
                 child: _buildBankLogoWidget(
-                  code: selectedBank?.code ?? _selectedMethod,
-                  logoFile: selectedBank?.bankLogo,
                   logoUrl: selectedBank?.bankLogoUrl,
                   height: 22,
                 ),
