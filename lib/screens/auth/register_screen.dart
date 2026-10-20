@@ -115,16 +115,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              CustomPillAppBar(
-                title: 'Daftar Akun',
-                onBackTap: () => Navigator.of(context).pop(),
-              ),
-              const SizedBox(height: 12),
+        child: Column(
+          children: [
+            // Fixed Top Pill App Bar
+            CustomPillAppBar(
+              title: 'Daftar Akun',
+              onBackTap: () => Navigator.of(context).pop(),
+            ),
+            const SizedBox(height: 12),
 
-              // Logo Center (No Yellow Background)
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    // Logo Center (No Yellow Background)
               ClipOval(
                 child: Image.asset(
                   AppAssets.logoHumora,
@@ -471,7 +475,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
       ),
-    );
+    ],
+  ),
+),
+);
   }
 
   Widget _buildInputField({
