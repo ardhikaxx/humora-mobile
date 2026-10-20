@@ -86,17 +86,21 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            children: [
-              CustomPillAppBar(
-                title: 'Lupa Kata Sandi',
-                onBackTap: () => Navigator.of(context).pop(),
-              ),
-              const SizedBox(height: 12),
+        child: Column(
+          children: [
+            // Fixed Top Pill App Bar
+            CustomPillAppBar(
+              title: 'Lupa Kata Sandi',
+              onBackTap: () => Navigator.of(context).pop(),
+            ),
+            const SizedBox(height: 12),
 
-              // Logo Center (Clean rounded circle, no outer container)
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  children: [
+                    // Logo Center (Clean rounded circle, no outer container)
               ClipOval(
                 child: Image.asset(
                   AppAssets.logoHumora,
@@ -345,6 +349,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
       ),
-    );
+    ],
+  ),
+),
+);
   }
 }
