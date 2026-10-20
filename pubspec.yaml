@@ -48,6 +48,7 @@ dependencies:
   path: ^1.9.0
   permission_handler: 11.3.1
   flutter_local_notifications: ^22.3.2
+  skeletonizer: ^3.0.0
 
 dev_dependencies:
   flutter_test:
