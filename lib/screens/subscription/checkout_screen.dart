@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
+import '../../data/models/payment_info_model.dart';
 import '../../data/models/subscription_plan_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/subscription_provider.dart';
@@ -227,7 +228,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ),
                     const SizedBox(height: 10),
 
-                    _buildMethodSelector(),
+                    _buildMethodSelector(paymentInfo),
 
                     const SizedBox(height: 16),
 
@@ -355,28 +356,98 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Widget _buildMethodSelector() {
-    return Row(
-      children: [
+  Widget _buildMethodSelector(dynamic paymentInfo) {
+    final List<Widget> buttons = [];
+    final banks = paymentInfo?.bankAccounts ?? <BankAccountModel>[];
+
+    // If no method selected yet, or current method not in banks and not qris, select first
+    if (_selectedMethod != 'qris' && !banks.any((b) => b.code == _selectedMethod)) {
+      if (banks.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _selectedMethod != banks.first.code) {
+            setState(() => _selectedMethod = banks.first.code);
+          }
+        });
+      }
+    }
+
+    if (banks.isNotEmpty) {
+      for (final bank in banks) {
+        buttons.add(
+          _buildMethodButton(
+            code: bank.code,
+            label: _formatBankLabel(bank.bankName),
+            icon: LucideIcons.building,
+          ),
+        );
+      }
+    } else {
+      buttons.add(
         _buildMethodButton(
           code: 'bca',
           label: 'BCA Transfer',
           icon: LucideIcons.building,
         ),
-        const SizedBox(width: 8),
+      );
+      buttons.add(
         _buildMethodButton(
           code: 'mandiri',
           label: 'Mandiri Transfer',
           icon: LucideIcons.building2,
         ),
-        const SizedBox(width: 8),
-        _buildMethodButton(
-          code: 'qris',
-          label: 'QRIS Resmi',
-          icon: LucideIcons.qrCode,
-        ),
-      ],
+      );
+    }
+
+    // QRIS is always available ("untuk qris tetap")
+    buttons.add(
+      _buildMethodButton(
+        code: 'qris',
+        label: 'QRIS Resmi',
+        icon: LucideIcons.qrCode,
+      ),
     );
+
+    if (buttons.length <= 3) {
+      return Row(
+        children: buttons.asMap().entries.map((entry) {
+          final isLast = entry.key == buttons.length - 1;
+          return Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(right: isLast ? 0 : 8),
+              child: entry.value,
+            ),
+          );
+        }).toList(),
+      );
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        children: buttons.asMap().entries.map((entry) {
+          final isLast = entry.key == buttons.length - 1;
+          return Padding(
+            padding: EdgeInsets.only(right: isLast ? 0 : 8),
+            child: SizedBox(
+              width: 112,
+              child: entry.value,
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  String _formatBankLabel(String rawName) {
+    final match = RegExp(r'\(([^)]+)\)').firstMatch(rawName);
+    if (match != null) {
+      return '${match.group(1)} Transfer';
+    }
+    if (rawName.toLowerCase().startsWith('bank ')) {
+      return '${rawName.substring(5).trim()} Transfer';
+    }
+    return '$rawName Transfer';
   }
 
   Widget _buildMethodButton({
@@ -386,38 +457,38 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }) {
     final isSelected = _selectedMethod == code;
 
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _selectedMethod = code),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.primaryPurple : AppColors.surface,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isSelected ? AppColors.primaryPurple : AppColors.border,
-              width: 1.5,
+    return GestureDetector(
+      onTap: () => setState(() => _selectedMethod = code),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryPurple : AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? AppColors.primaryPurple : AppColors.border,
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: isSelected ? AppColors.primaryYellow : AppColors.textSecondary,
             ),
-          ),
-          child: Column(
-            children: [
-              Icon(
-                icon,
-                size: 20,
-                color: isSelected ? AppColors.primaryYellow : AppColors.textSecondary,
+            const SizedBox(height: 6),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                color: isSelected ? Colors.white : AppColors.textPrimary,
               ),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                  color: isSelected ? Colors.white : AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -469,29 +540,42 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ),
             ),
             const SizedBox(height: 10),
-            const Text(
-              'a.n. PT HUMORA MEDIA KREATIF',
-              style: TextStyle(
+            Text(
+              'a.n. ${paymentInfo?.qris?.accountName ?? "PT HUMORA MEDIA KREATIF"}',
+              style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'Dapat dipindai dari m-BCA, Livin by Mandiri, GoPay, OVO, ShopeePay, DANA.',
+            Text(
+              paymentInfo?.qris?.instructions ?? 'Dapat dipindai dari m-BCA, Livin by Mandiri, GoPay, OVO, ShopeePay, DANA.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
             ),
           ],
         ),
       );
     }
 
-    // Bank Account details
-    String bankName = _selectedMethod == 'bca' ? 'Bank Central Asia (BCA)' : 'Bank Mandiri';
-    String accNumber = _selectedMethod == 'bca' ? '8830-192-888' : '137-00-998822-1';
-    String accName = _selectedMethod == 'bca' ? 'PT HUMORA MEDIA KREATIF' : 'HUMORA';
+    // Dynamic Bank Account details
+    final banks = paymentInfo?.bankAccounts ?? <BankAccountModel>[];
+    BankAccountModel? selectedBank;
+    if (banks.isNotEmpty) {
+      for (final b in banks) {
+        if (b.code == _selectedMethod) {
+          selectedBank = b;
+          break;
+        }
+      }
+      selectedBank ??= banks.first;
+    }
+
+    final String bankName = selectedBank?.bankName ?? (_selectedMethod == 'mandiri' ? 'Bank Mandiri' : 'Bank Central Asia (BCA)');
+    final String accNumber = selectedBank?.accountNumber ?? (_selectedMethod == 'mandiri' ? '137-00-998822-1' : '8830-192-888');
+    final String accName = selectedBank?.accountName ?? 'PT HUMORA MEDIA KREATIF';
+    final String instructions = selectedBank?.instructions ?? 'Transfer manual ke rekening di atas sesuai nominal paket.';
 
     return Container(
       width: double.infinity,
@@ -517,13 +601,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                accNumber,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.primaryPurple,
-                  letterSpacing: 1.0,
+              Expanded(
+                child: Text(
+                  accNumber,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primaryPurple,
+                    letterSpacing: 1.0,
+                  ),
                 ),
               ),
               GestureDetector(
@@ -566,6 +652,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             'Atas Nama: $accName',
             style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
+          if (instructions.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              instructions,
+              style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+            ),
+          ],
         ],
       ),
     );

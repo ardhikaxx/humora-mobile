@@ -34,6 +34,9 @@ import 'package:humora_mobile/core/services/vibration_service.dart';
 import 'package:humora_mobile/core/services/showcase_service.dart';
 import 'package:humora_mobile/core/services/floating_service.dart';
 import 'package:humora_mobile/providers/connectivity_provider.dart';
+import 'package:humora_mobile/screens/subscription/checkout_screen.dart';
+import 'package:humora_mobile/data/models/payment_info_model.dart';
+import 'package:humora_mobile/data/models/subscription_plan_model.dart';
 
 class MockHomeSeriesProvider extends SeriesProvider {
   bool _mockLoading = false;
@@ -51,6 +54,21 @@ class MockHomeSeriesProvider extends SeriesProvider {
 
   @override
   Future<void> fetchCategories() async {}
+}
+
+class MockSubscriptionProvider extends SubscriptionProvider {
+  PaymentInfoModel? _mockInfo;
+
+  @override
+  PaymentInfoModel? get paymentInfo => _mockInfo;
+
+  void setMockPaymentInfo(PaymentInfoModel info) {
+    _mockInfo = info;
+    notifyListeners();
+  }
+
+  @override
+  Future<void> fetchPaymentInfo() async {}
 }
 
 void main() {
@@ -649,6 +667,86 @@ void main() {
     await ShowcaseService.resetShowcase();
     expect(await ShowcaseService.shouldShowShowcase(), isTrue);
     ShowcaseService.disableInTests = true;
+  });
+
+  testWidgets('CheckoutScreen renders dynamic bank method buttons and QRIS correctly', (WidgetTester tester) async {
+    final subProvider = MockSubscriptionProvider();
+    subProvider.setMockPaymentInfo(
+      const PaymentInfoModel(
+        bankAccounts: [
+          BankAccountModel(
+            code: 'bca',
+            bankName: 'Bank Central Asia (BCA)',
+            accountNumber: '8830-192-888',
+            accountName: 'PT HUMORA MEDIA KREATIF',
+            instructions: 'Transfer ke BCA',
+          ),
+          BankAccountModel(
+            code: 'mandiri',
+            bankName: 'Bank Mandiri',
+            accountNumber: '137-00-998822-1',
+            accountName: 'HUMORA',
+            instructions: 'Transfer ke Mandiri',
+          ),
+          BankAccountModel(
+            code: 'bri',
+            bankName: 'Bank BRI',
+            accountNumber: '0011-2233-4455',
+            accountName: 'HUMORA MEDIA',
+            instructions: 'Transfer ke BRI',
+          ),
+        ],
+        qris: QrisModel(
+          code: 'qris',
+          isConfigured: true,
+          accountName: 'PT HUMORA MEDIA KREATIF',
+          instructions: 'Scan QRIS',
+        ),
+      ),
+    );
+
+    const testPlan = SubscriptionPlanModel(
+      id: '1',
+      code: 'monthly',
+      name: 'Paket Bulanan',
+      durationDays: 30,
+      durationText: '30 Hari',
+      description: 'Akses penuh seluruh serial VIP',
+      originalPrice: 29000,
+      price: 19000,
+      formattedPrice: 'Rp19.000',
+      badgeText: 'Populer',
+      benefits: ['Akses Semua Video'],
+    );
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<AuthProvider>(create: (_) => AuthProvider()),
+          ChangeNotifierProvider<SubscriptionProvider>.value(value: subProvider),
+          ChangeNotifierProvider<TransactionProvider>(create: (_) => TransactionProvider()),
+        ],
+        child: const MaterialApp(
+          home: CheckoutScreen(plan: testPlan),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Verify 3 dynamic banks + QRIS = 4 buttons rendered
+    expect(find.text('BCA Transfer'), findsOneWidget);
+    expect(find.text('Mandiri Transfer'), findsOneWidget);
+    expect(find.text('BRI Transfer'), findsOneWidget);
+    expect(find.text('QRIS Resmi'), findsOneWidget);
+
+    // Tap on BRI Transfer button
+    await tester.tap(find.text('BRI Transfer'));
+    await tester.pumpAndSettle();
+
+    // Verify BRI account details appear
+    expect(find.text('0011-2233-4455'), findsOneWidget);
+    expect(find.text('Atas Nama: HUMORA MEDIA'), findsOneWidget);
   });
 }
 
