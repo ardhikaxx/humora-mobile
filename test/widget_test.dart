@@ -677,6 +677,7 @@ void main() {
           BankAccountModel(
             code: 'bca',
             bankName: 'Bank Central Asia (BCA)',
+            bankLogo: 'bca.png',
             accountNumber: '8830-192-888',
             accountName: 'PT HUMORA MEDIA KREATIF',
             instructions: 'Transfer ke BCA',
@@ -684,6 +685,7 @@ void main() {
           BankAccountModel(
             code: 'mandiri',
             bankName: 'Bank Mandiri',
+            bankLogo: 'mandiri.png',
             accountNumber: '137-00-998822-1',
             accountName: 'HUMORA',
             instructions: 'Transfer ke Mandiri',
@@ -691,6 +693,7 @@ void main() {
           BankAccountModel(
             code: 'bri',
             bankName: 'Bank BRI',
+            bankLogo: 'bri.png',
             accountNumber: '0011-2233-4455',
             accountName: 'HUMORA MEDIA',
             instructions: 'Transfer ke BRI',

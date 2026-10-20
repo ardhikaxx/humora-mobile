@@ -377,7 +377,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           _buildMethodButton(
             code: bank.code,
             label: _formatBankLabel(bank.bankName),
-            icon: LucideIcons.building,
+            logoFile: bank.bankLogo,
+            logoUrl: bank.bankLogoUrl,
           ),
         );
       }
@@ -386,14 +387,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         _buildMethodButton(
           code: 'bca',
           label: 'BCA Transfer',
-          icon: LucideIcons.building,
+          logoFile: 'bca.png',
         ),
       );
       buttons.add(
         _buildMethodButton(
           code: 'mandiri',
           label: 'Mandiri Transfer',
-          icon: LucideIcons.building2,
+          logoFile: 'mandiri.png',
         ),
       );
     }
@@ -403,7 +404,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       _buildMethodButton(
         code: 'qris',
         label: 'QRIS Resmi',
-        icon: LucideIcons.qrCode,
       ),
     );
 
@@ -430,7 +430,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           return Padding(
             padding: EdgeInsets.only(right: isLast ? 0 : 8),
             child: SizedBox(
-              width: 112,
+              width: 114,
               child: entry.value,
             ),
           );
@@ -450,17 +450,78 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return '$rawName Transfer';
   }
 
+  Widget _buildBankLogoWidget({
+    String? code,
+    String? logoFile,
+    String? logoUrl,
+    double height = 20,
+    double? width,
+  }) {
+    final assetName = logoFile ?? (code != null ? '$code.png' : null);
+    if (assetName != null && assetName.isNotEmpty) {
+      final assetPath = 'assets/images/banks/$assetName';
+      return Image.asset(
+        assetPath,
+        height: height,
+        width: width,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          if (logoUrl != null && logoUrl.isNotEmpty) {
+            return Image.network(
+              logoUrl,
+              height: height,
+              width: width,
+              fit: BoxFit.contain,
+              errorBuilder: (context, err, stack) => Icon(
+                LucideIcons.landmark,
+                size: height,
+                color: AppColors.primaryPurple,
+              ),
+            );
+          }
+          return Icon(
+            LucideIcons.landmark,
+            size: height,
+            color: AppColors.primaryPurple,
+          );
+        },
+      );
+    }
+
+    if (logoUrl != null && logoUrl.isNotEmpty) {
+      return Image.network(
+        logoUrl,
+        height: height,
+        width: width,
+        fit: BoxFit.contain,
+        errorBuilder: (context, err, stack) => Icon(
+          LucideIcons.landmark,
+          size: height,
+          color: AppColors.primaryPurple,
+        ),
+      );
+    }
+
+    return Icon(
+      LucideIcons.landmark,
+      size: height,
+      color: AppColors.primaryPurple,
+    );
+  }
+
   Widget _buildMethodButton({
     required String code,
     required String label,
-    required IconData icon,
+    String? logoFile,
+    String? logoUrl,
   }) {
     final isSelected = _selectedMethod == code;
+    final isQris = code == 'qris';
 
     return GestureDetector(
       onTap: () => setState(() => _selectedMethod = code),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primaryPurple : AppColors.surface,
           borderRadius: BorderRadius.circular(14),
@@ -468,13 +529,45 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             color: isSelected ? AppColors.primaryPurple : AppColors.border,
             width: 1.5,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primaryPurple.withValues(alpha: 0.22),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 20,
-              color: isSelected ? AppColors.primaryYellow : AppColors.textSecondary,
+            Container(
+              height: 28,
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(7),
+                border: Border.all(
+                  color: isSelected ? Colors.white.withValues(alpha: 0.8) : AppColors.border,
+                  width: 0.8,
+                ),
+              ),
+              child: Center(
+                child: isQris
+                    ? const Icon(
+                        LucideIcons.qrCode,
+                        size: 18,
+                        color: AppColors.primaryPurple,
+                      )
+                    : _buildBankLogoWidget(
+                        code: code,
+                        logoFile: logoFile,
+                        logoUrl: logoUrl,
+                        height: 20,
+                      ),
+              ),
             ),
             const SizedBox(height: 6),
             Text(
@@ -588,16 +681,48 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            bankName.toUpperCase(),
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textMuted,
-              letterSpacing: 0.5,
-            ),
+          Row(
+            children: [
+              Container(
+                height: 32,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: _buildBankLogoWidget(
+                  code: selectedBank?.code ?? _selectedMethod,
+                  logoFile: selectedBank?.bankLogo,
+                  logoUrl: selectedBank?.bankLogoUrl,
+                  height: 22,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      bankName.toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    const Text(
+                      'Transfer Bank Manual Resmi',
+                      style: TextStyle(fontSize: 10, color: AppColors.textMuted),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

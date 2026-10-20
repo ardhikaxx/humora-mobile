@@ -1,6 +1,8 @@
 class BankAccountModel {
   final String code;
   final String bankName;
+  final String? bankLogo;
+  final String? bankLogoUrl;
   final String accountNumber;
   final String accountName;
   final String instructions;
@@ -8,6 +10,8 @@ class BankAccountModel {
   const BankAccountModel({
     required this.code,
     required this.bankName,
+    this.bankLogo,
+    this.bankLogoUrl,
     required this.accountNumber,
     required this.accountName,
     required this.instructions,
@@ -17,6 +21,8 @@ class BankAccountModel {
     return BankAccountModel(
       code: json['code']?.toString() ?? 'bca',
       bankName: json['bank_name']?.toString() ?? 'Bank Transfer',
+      bankLogo: json['bank_logo']?.toString(),
+      bankLogoUrl: json['bank_logo_url']?.toString(),
       accountNumber: json['account_number']?.toString() ?? '',
       accountName: json['account_name']?.toString() ?? 'PT HUMORA MEDIA KREATIF',
       instructions: json['instructions']?.toString() ?? '',
