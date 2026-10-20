@@ -1,9 +1,13 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_assets.dart';
+import '../../core/services/showcase_service.dart';
+import '../../core/services/vibration_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/series_provider.dart';
 import '../../providers/history_provider.dart';
@@ -17,10 +21,56 @@ import '../subscription/subscription_plans_screen.dart';
 import '../video/series_detail_screen.dart';
 import '../video/video_player_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   final Function(int)? onNavigateTab;
 
   const HomeScreen({super.key, this.onNavigateTab});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final GlobalKey _keyLogo = GlobalKey();
+  final GlobalKey _keyHeroCard = GlobalKey();
+  final GlobalKey _keyPopular = GlobalKey();
+  bool _showcaseTriggered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    ShowcaseView.register();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndStartShowcase();
+    });
+  }
+
+  void _checkAndStartShowcase() async {
+    if (_showcaseTriggered || !mounted) return;
+    final shouldShow = await ShowcaseService.shouldShowShowcase();
+    if (!shouldShow || !mounted || _showcaseTriggered) return;
+
+    final seriesProv = context.read<SeriesProvider>();
+    if (seriesProv.isLoading || seriesProv.seriesList.isEmpty) return;
+
+    _showcaseTriggered = true;
+    try {
+      ShowcaseView.get().startShowCase([
+        _keyLogo,
+        _keyHeroCard,
+        _keyPopular,
+      ]);
+      await ShowcaseService.markShowcaseCompleted();
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    try {
+      ShowcaseView.get().unregister();
+    } catch (_) {}
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +81,12 @@ class HomeScreen extends StatelessWidget {
 
     final featured = seriesProv.featuredSeries;
     final continuing = historyProv.continuingHistory;
+
+    if (!_showcaseTriggered && !seriesProv.isLoading && seriesProv.seriesList.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkAndStartShowcase();
+      });
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -44,6 +100,7 @@ class HomeScreen extends StatelessWidget {
               child: RefreshIndicator(
                 color: AppColors.primaryYellow,
                 onRefresh: () async {
+                  VibrationService.lightImpact();
                   await Future.wait([
                     seriesProv.fetchSeries(),
                     seriesProv.fetchCategories(),
@@ -89,7 +146,17 @@ class HomeScreen extends StatelessWidget {
                 // Featured Hero Card
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildHeroCard(context, featured),
+                  child: Showcase(
+                    key: _keyHeroCard,
+                    title: 'Serial Komedi Pilihan',
+                    description: 'Ketuk poster ini untuk mulai menonton episode seru hari ini.',
+                    tooltipBackgroundColor: AppColors.surface,
+                    textColor: AppColors.textPrimary,
+                    targetShapeBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                    titleTextStyle: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.accentPurple, fontSize: 14),
+                    descTextStyle: const TextStyle(fontWeight: FontWeight.w500, color: AppColors.textSecondary, fontSize: 12),
+                    child: _buildHeroCard(context, featured),
+                  ),
                 ),
 
                 const SizedBox(height: 24),
@@ -127,7 +194,7 @@ class HomeScreen extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       GestureDetector(
-                        onTap: () => onNavigateTab?.call(2), // Riwayat tab
+                        onTap: () => widget.onNavigateTab?.call(2), // Riwayat tab
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -169,12 +236,21 @@ class HomeScreen extends StatelessWidget {
               ],
 
               // Video Populer Section
-              _buildSectionHeader(
-                title: 'Video Populer',
-                icon: LucideIcons.flame,
-                iconColor: const Color(0xFFEF4444),
-                actionLabel: 'Lihat Semua',
-                onActionTap: () => onNavigateTab?.call(1),
+              Showcase(
+                key: _keyPopular,
+                title: 'Koleksi Video Populer',
+                description: 'Temukan video-video paling viral dan disukai oleh penonton HUMORA.',
+                tooltipBackgroundColor: AppColors.surface,
+                textColor: AppColors.textPrimary,
+                titleTextStyle: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFEF4444), fontSize: 14),
+                descTextStyle: const TextStyle(fontWeight: FontWeight.w500, color: AppColors.textSecondary, fontSize: 12),
+                child: _buildSectionHeader(
+                  title: 'Video Populer',
+                  icon: LucideIcons.flame,
+                  iconColor: const Color(0xFFEF4444),
+                  actionLabel: 'Lihat Semua',
+                  onActionTap: () => widget.onNavigateTab?.call(1),
+                ),
               ),
               const SizedBox(height: 12),
               SizedBox(
@@ -202,7 +278,7 @@ class HomeScreen extends StatelessWidget {
                 icon: LucideIcons.sparkles,
                 iconColor: AppColors.accentPurple,
                 actionLabel: 'Lihat Semua',
-                onActionTap: () => onNavigateTab?.call(1),
+                onActionTap: () => widget.onNavigateTab?.call(1),
               ),
               const SizedBox(height: 12),
               SizedBox(
@@ -272,7 +348,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     GestureDetector(
-                      onTap: () => onNavigateTab?.call(1),
+                      onTap: () => widget.onNavigateTab?.call(1),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -322,7 +398,7 @@ class HomeScreen extends StatelessWidget {
                 icon: LucideIcons.compass,
                 iconColor: AppColors.accentPurple,
                 actionLabel: 'Jelajahi',
-                onActionTap: () => onNavigateTab?.call(1),
+                onActionTap: () => widget.onNavigateTab?.call(1),
               ),
               const SizedBox(height: 12),
               SizedBox(
@@ -718,16 +794,26 @@ class HomeScreen extends StatelessWidget {
       child: Row(
         children: [
           // Humora Full Rounded Logo (No Yellow Background)
-          ClipOval(
-            child: Image.asset(
-              AppAssets.logoHumora,
-              width: 44,
-              height: 44,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => const Icon(
-                LucideIcons.play,
-                size: 20,
-                color: AppColors.primaryDark,
+          Showcase(
+            key: _keyLogo,
+            title: 'Selamat Datang di HUMORA!',
+            description: 'Aplikasi streaming serial sketsa dan video komedi terbaik.',
+            tooltipBackgroundColor: AppColors.surface,
+            textColor: AppColors.textPrimary,
+            targetShapeBorder: const CircleBorder(),
+            titleTextStyle: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.primaryYellowDark, fontSize: 14),
+            descTextStyle: const TextStyle(fontWeight: FontWeight.w500, color: AppColors.textSecondary, fontSize: 12),
+            child: ClipOval(
+              child: Image.asset(
+                AppAssets.logoHumora,
+                width: 44,
+                height: 44,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => const Icon(
+                  LucideIcons.play,
+                  size: 20,
+                  color: AppColors.primaryDark,
+                ),
               ),
             ),
           ),
@@ -982,6 +1068,7 @@ class HomeScreen extends StatelessWidget {
           // Langganan Button
           GestureDetector(
             onTap: () {
+              VibrationService.mediumImpact();
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => const SubscriptionPlansScreen(),
@@ -1119,16 +1206,19 @@ class HomeScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
+                  AutoSizeText(
                     featured.title,
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
                       color: Colors.white,
                     ),
+                    maxLines: 1,
+                    minFontSize: 16,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  Text(
+                  AutoSizeText(
                     featured.synopsis,
                     style: TextStyle(
                       fontSize: 11,
@@ -1136,6 +1226,7 @@ class HomeScreen extends StatelessWidget {
                       height: 1.3,
                     ),
                     maxLines: 2,
+                    minFontSize: 9,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 12),
@@ -1148,6 +1239,7 @@ class HomeScreen extends StatelessWidget {
                         // Tonton Sekarang Button
                         GestureDetector(
                           onTap: () {
+                            VibrationService.mediumImpact();
                             Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (_) => VideoPlayerScreen(
