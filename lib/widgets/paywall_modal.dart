@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../core/services/vibration_service.dart';
 import '../core/theme/app_colors.dart';
 import '../screens/subscription/subscription_plans_screen.dart';
 
@@ -7,6 +8,7 @@ class PaywallModal extends StatelessWidget {
   const PaywallModal({super.key});
 
   static Future<void> show(BuildContext context) {
+    VibrationService.mediumImpact();
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -232,6 +234,7 @@ class PaywallModal extends StatelessWidget {
             height: 52,
             child: ElevatedButton(
               onPressed: () {
+                VibrationService.mediumImpact();
                 Navigator.of(context).pop();
                 Navigator.of(context).push(
                   MaterialPageRoute(
