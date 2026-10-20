@@ -285,16 +285,50 @@ class ApiService {
 
   Future<Response> updateWatchProgress({
     required int episodeId,
+    int? seriesId,
     required int lastPosition,
     required int durationSeconds,
+    int? progressPercent,
+    String? sessionId,
   }) async {
+    final data = <String, dynamic>{
+      'episode_id': episodeId,
+      'last_position': lastPosition,
+      'duration_seconds': durationSeconds,
+    };
+    if (seriesId != null) data['series_id'] = seriesId;
+    if (progressPercent != null) data['progress_percent'] = progressPercent;
+    if (sessionId != null) data['session_id'] = sessionId;
+
     return await _dio.post(
       '/watch-history/progress',
-      data: {
-        'episode_id': episodeId,
-        'last_position': lastPosition,
-        'duration_seconds': durationSeconds,
-      },
+      data: data,
+    );
+  }
+
+  /// Realtime Viewing Event & Watch Time Tracking
+  Future<Response> trackVideoView({
+    required int episodeId,
+    int? seriesId,
+    required String sessionId,
+    required int watchedSeconds,
+    required int lastPosition,
+    required int durationSeconds,
+    int? progressPercent,
+  }) async {
+    final data = <String, dynamic>{
+      'episode_id': episodeId,
+      'session_id': sessionId,
+      'watched_seconds': watchedSeconds,
+      'last_position': lastPosition,
+      'duration_seconds': durationSeconds,
+    };
+    if (seriesId != null) data['series_id'] = seriesId;
+    if (progressPercent != null) data['progress_percent'] = progressPercent;
+
+    return await _dio.post(
+      '/videos/track-view',
+      data: data,
     );
   }
 
