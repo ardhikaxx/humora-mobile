@@ -61,14 +61,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              CustomPillAppBar(
-                title: 'Edit Profil',
-                onBackTap: () => Navigator.of(context).pop(),
-              ),
-              const SizedBox(height: 12),
+        child: Column(
+          children: [
+            // Fixed Top Pill App Bar
+            CustomPillAppBar(
+              title: 'Edit Profil',
+              onBackTap: () => Navigator.of(context).pop(),
+            ),
+            const SizedBox(height: 12),
+
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
 
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -254,7 +259,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
         ),
       ),
-    );
+    ],
+  ),
+),
+);
   }
 
   Widget _buildField({
