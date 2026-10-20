@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_assets.dart';
 import '../../providers/auth_provider.dart';
@@ -34,28 +35,33 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: RefreshIndicator(
-          color: AppColors.primaryYellow,
-          onRefresh: () async {
-            await Future.wait([
-              seriesProv.fetchSeries(),
-              seriesProv.fetchCategories(),
-              historyProv.fetchHistory(),
-              notifProv.fetchNotifications(),
-            ]);
-          },
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.only(bottom: 100),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Top Pill Header
-                _buildTopHeader(context, auth, notifProv),
+        child: Column(
+          children: [
+            // Fixed Floating Top Header
+            _buildTopHeader(context, auth, notifProv),
 
-              const SizedBox(height: 12),
+            Expanded(
+              child: RefreshIndicator(
+                color: AppColors.primaryYellow,
+                onRefresh: () async {
+                  await Future.wait([
+                    seriesProv.fetchSeries(),
+                    seriesProv.fetchCategories(),
+                    historyProv.fetchHistory(),
+                    notifProv.fetchNotifications(),
+                  ]);
+                },
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.only(bottom: 100),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 12),
 
-              if (seriesProv.seriesList.isEmpty) ...[
+              if (seriesProv.isLoading && seriesProv.seriesList.isEmpty) ...[
+                _buildHomeSkeleton(context),
+              ] else if (seriesProv.seriesList.isEmpty) ...[
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
                   child: HumoraEmptyState(
@@ -341,8 +347,353 @@ class HomeScreen extends StatelessWidget {
         ),
       ),
     ),
+  ],
+),
+    ),
   );
 }
+
+  Widget _buildHomeSkeleton(BuildContext context) {
+    return Skeletonizer(
+      enabled: true,
+      effect: const ShimmerEffect(
+        baseColor: Color(0xFFEADBFA),
+        highlightColor: Color(0xFFFBF9FD),
+        duration: Duration(milliseconds: 1200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // VIP Promo Banner Skeleton Placeholder
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              height: 68,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.border, width: 1.2),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 150,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          width: 200,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 90,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Featured Hero Card Skeleton Placeholder
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              height: 250,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: AppColors.border, width: 1),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Top badges
+                    Row(
+                      children: [
+                        Container(
+                          width: 80,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          width: 90,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ),
+                      ],
+                    ),
+                    // Bottom title, synopsis & action buttons
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 220,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          width: 180,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            Container(
+                              width: 140,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceVariant,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Container(
+                              width: 110,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceVariant,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Video Populer Skeleton Section
+          _buildSkeletonSectionHeader('Video Populer'),
+          const SizedBox(height: 12),
+          _buildSkeletonPosterList(),
+
+          const SizedBox(height: 24),
+
+          // Terbaru di HUMORA Skeleton Section
+          _buildSkeletonSectionHeader('Terbaru di HUMORA'),
+          const SizedBox(height: 12),
+          _buildSkeletonPosterList(),
+
+          const SizedBox(height: 24),
+
+          // Gratis untuk Kamu Skeleton Section
+          _buildSkeletonSectionHeader('Gratis untuk Kamu', subtitle: 'Tonton 2 video pertama tanpa langganan'),
+          const SizedBox(height: 12),
+          _buildSkeletonPosterList(),
+
+          const SizedBox(height: 24),
+
+          // Rekomendasi Buat Kamu Skeleton Section
+          _buildSkeletonSectionHeader('Rekomendasi Buat Kamu'),
+          const SizedBox(height: 12),
+          _buildSkeletonPosterList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkeletonSectionHeader(String title, {String? subtitle}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 18,
+                      height: 18,
+                      decoration: const BoxDecoration(
+                        color: AppColors.surfaceVariant,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 130,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceVariant,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ],
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    width: 200,
+                    height: 11,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Container(
+            width: 60,
+            height: 14,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceVariant,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkeletonPosterList() {
+    return SizedBox(
+      height: 215,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        scrollDirection: Axis.horizontal,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 4,
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
+        itemBuilder: (_, _) => _buildSkeletonPosterCard(),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonPosterCard() {
+    return Container(
+      width: 145,
+      height: 215,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Top badges row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                width: 48,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              Container(
+                width: 38,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+            ],
+          ),
+          // Bottom info
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 110,
+                height: 13,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                width: 70,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildTopHeader(
     BuildContext context,
@@ -370,8 +721,8 @@ class HomeScreen extends StatelessWidget {
           ClipOval(
             child: Image.asset(
               AppAssets.logoHumora,
-              width: 38,
-              height: 38,
+              width: 44,
+              height: 44,
               fit: BoxFit.cover,
               errorBuilder: (_, _, _) => const Icon(
                 LucideIcons.play,
