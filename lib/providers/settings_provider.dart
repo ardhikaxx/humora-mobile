@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../core/services/humora_cache_service.dart';
 
 class SettingsProvider extends ChangeNotifier {
   static const String _keyAutoPlayNext = 'setting_auto_play_next';
@@ -27,6 +28,15 @@ class SettingsProvider extends ChangeNotifier {
 
   Future<void> init() async {
     await _loadPreferences();
+    await refreshCacheSize();
+  }
+
+  Future<void> refreshCacheSize() async {
+    try {
+      final size = await HumoraCacheService.calculateTotalCacheSizeMb();
+      _cacheSizeMb = size;
+      notifyListeners();
+    } catch (_) {}
   }
 
   Future<void> _loadPreferences() async {
@@ -109,7 +119,8 @@ class SettingsProvider extends ChangeNotifier {
     }
   }
 
-  void clearCache() {
+  Future<void> clearCache() async {
+    await HumoraCacheService.clearAllCache();
     _cacheSizeMb = 0.0;
     notifyListeners();
   }
