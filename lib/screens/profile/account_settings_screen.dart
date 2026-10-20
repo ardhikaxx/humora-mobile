@@ -18,16 +18,20 @@ class AccountSettingsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              CustomPillAppBar(
-                title: 'Pengaturan Akun',
-                onBackTap: () => Navigator.of(context).pop(),
-              ),
-              const SizedBox(height: 12),
+        child: Column(
+          children: [
+            // Fixed Top Pill App Bar
+            CustomPillAppBar(
+              title: 'Pengaturan Akun',
+              onBackTap: () => Navigator.of(context).pop(),
+            ),
+            const SizedBox(height: 12),
 
-              // Card 1: Pemutaran Video
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    // Card 1: Pemutaran Video
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Container(
@@ -382,7 +386,10 @@ class AccountSettingsScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ],
+  ),
+),
+);
   }
 
   Widget _buildHeaderSection({
