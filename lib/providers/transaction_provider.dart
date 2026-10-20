@@ -26,6 +26,14 @@ class TransactionProvider extends ChangeNotifier {
     }
   }
 
+  TransactionModel? get latestSuccessTransaction {
+    try {
+      return _transactions.firstWhere((t) => t.isSuccess);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> fetchTransactions() async {
     _isLoading = true;
     _errorMessage = null;
