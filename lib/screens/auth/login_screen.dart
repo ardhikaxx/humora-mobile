@@ -93,16 +93,20 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              CustomPillAppBar(
-                title: 'Masuk Akun',
-                onBackTap: () => Navigator.of(context).pop(),
-              ),
-              const SizedBox(height: 16),
+        child: Column(
+          children: [
+            // Fixed Top Pill App Bar
+            CustomPillAppBar(
+              title: 'Masuk Akun',
+              onBackTap: () => Navigator.of(context).pop(),
+            ),
+            const SizedBox(height: 16),
 
-              // Logo Center (No Yellow Background)
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    // Logo Center (No Yellow Background)
               ClipOval(
                 child: Image.asset(
                   AppAssets.logoHumora,
@@ -472,7 +476,10 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
-    );
+    ],
+  ),
+),
+);
   }
 
   Widget _buildTabButton({
