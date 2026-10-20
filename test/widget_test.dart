@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -27,6 +28,12 @@ import 'package:humora_mobile/screens/legal/terms_screen.dart';
 import 'package:humora_mobile/screens/legal/privacy_policy_screen.dart';
 import 'package:humora_mobile/core/services/permission_service.dart';
 import 'package:humora_mobile/core/services/local_notification_service.dart';
+import 'package:humora_mobile/core/services/connectivity_service.dart';
+import 'package:humora_mobile/core/services/wakelock_service.dart';
+import 'package:humora_mobile/core/services/vibration_service.dart';
+import 'package:humora_mobile/core/services/showcase_service.dart';
+import 'package:humora_mobile/core/services/floating_service.dart';
+import 'package:humora_mobile/providers/connectivity_provider.dart';
 
 class MockHomeSeriesProvider extends SeriesProvider {
   bool _mockLoading = false;
@@ -52,6 +59,11 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     PermissionService.disableAutoPromptForTesting = true;
     LocalNotificationService.disableInTests = true;
+    ConnectivityService.disableInTests = true;
+    WakelockService.disableInTests = true;
+    VibrationService.disableInTests = true;
+    ShowcaseService.disableInTests = true;
+    FloatingService.disableInTests = true;
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
@@ -68,6 +80,19 @@ void main() {
         return <int, int>{};
       },
     );
+
+    final mockTempDir = Directory('${Directory.systemTemp.path}/humora_test_cache');
+    if (!mockTempDir.existsSync()) {
+      mockTempDir.createSync(recursive: true);
+    }
+
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'),
+      (MethodCall methodCall) async {
+        return mockTempDir.path;
+      },
+    );
   });
   testWidgets('Humora app smoke test', (WidgetTester tester) async {
     await tester.pumpWidget(
@@ -80,6 +105,7 @@ void main() {
           ChangeNotifierProvider(create: (_) => SettingsProvider()),
           ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
           ChangeNotifierProvider(create: (_) => TransactionProvider()),
+          ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
         ],
         child: const HumoraApp(),
       ),
@@ -109,6 +135,7 @@ void main() {
           ChangeNotifierProvider(create: (_) => SettingsProvider()),
           ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
           ChangeNotifierProvider(create: (_) => TransactionProvider()),
+          ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
         ],
         child: const HumoraApp(),
       ),
@@ -537,6 +564,91 @@ void main() {
     // Verify HumoraEmptyState is displayed
     expect(find.text('Katalog Video Belum Tersedia'), findsOneWidget);
     expect(find.text('Muat Ulang Halaman'), findsOneWidget);
+  });
+
+  testWidgets('ConnectivityProvider and MainNavigationShell display offline banner and retry action', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(500, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final connProvider = ConnectivityProvider();
+    connProvider.setMockStatusForTesting(isOnline: false);
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => AuthProvider()),
+          ChangeNotifierProvider(create: (_) => SeriesProvider()),
+          ChangeNotifierProvider(create: (_) => HistoryProvider()),
+          ChangeNotifierProvider(create: (_) => NotificationProvider()),
+          ChangeNotifierProvider(create: (_) => SettingsProvider()),
+          ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
+          ChangeNotifierProvider(create: (_) => TransactionProvider()),
+          ChangeNotifierProvider.value(value: connProvider),
+        ],
+        child: const HumoraApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify offline banner and button are rendered
+    expect(find.text('Koneksi internet terputus. Mode offline aktif.'), findsOneWidget);
+    expect(find.text('Coba Lagi'), findsOneWidget);
+    expect(find.byIcon(LucideIcons.wifiOff), findsOneWidget);
+
+    // Tap "Coba Lagi"
+    await tester.tap(find.text('Coba Lagi'));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Switch back to online
+    connProvider.setMockStatusForTesting(isOnline: true);
+    await tester.pumpAndSettle();
+
+    // Verify offline banner is dismissed
+    expect(find.text('Koneksi internet terputus. Mode offline aktif.'), findsNothing);
+
+    // Advance past reconnect banner auto-dismiss timer (3 seconds)
+    await tester.pump(const Duration(seconds: 4));
+    connProvider.dispose();
+  });
+
+  test('SettingsProvider clearCache sets cache size to 0.0', () async {
+    final settingsProvider = SettingsProvider();
+    await settingsProvider.init();
+
+    await settingsProvider.clearCache();
+    expect(settingsProvider.cacheSizeMb, equals(0.0));
+  });
+
+  test('WakelockService and FloatingService run safely without exceptions in tests', () async {
+    WakelockService.disableInTests = true;
+    await WakelockService.enable();
+    await WakelockService.disable();
+    expect(await WakelockService.isEnabled(), isFalse);
+
+    FloatingService.disableInTests = true;
+    expect(await FloatingService.isPipAvailable(), isFalse);
+    await FloatingService.enablePip();
+  });
+
+  test('VibrationService provides light, medium, and success patterns safely', () async {
+    VibrationService.disableInTests = true;
+    await VibrationService.lightImpact();
+    await VibrationService.mediumImpact();
+    await VibrationService.successPattern();
+  });
+
+  test('ShowcaseService tracks completion and reset states', () async {
+    ShowcaseService.disableInTests = false;
+    await ShowcaseService.resetShowcase();
+    expect(await ShowcaseService.shouldShowShowcase(), isTrue);
+
+    await ShowcaseService.markShowcaseCompleted();
+    expect(await ShowcaseService.shouldShowShowcase(), isFalse);
+
+    await ShowcaseService.resetShowcase();
+    expect(await ShowcaseService.shouldShowShowcase(), isTrue);
+    ShowcaseService.disableInTests = true;
   });
 }
 
