@@ -1,6 +1,8 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import '../../core/services/vibration_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/subscription_plan_model.dart';
 import '../../providers/subscription_provider.dart';
@@ -247,6 +249,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
   Widget _buildPlanCard(SubscriptionPlanModel plan, bool isSelected) {
     return GestureDetector(
       onTap: () {
+        VibrationService.lightImpact();
         setState(() {
           _selectedPlan = plan;
         });
@@ -300,13 +303,15 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      AutoSizeText(
                         plan.name,
                         style: const TextStyle(
                           fontSize: 14.5,
                           fontWeight: FontWeight.w800,
                           color: AppColors.textPrimary,
                         ),
+                        maxLines: 1,
+                        minFontSize: 11,
                       ),
                       const SizedBox(height: 2),
                       Text(
@@ -341,13 +346,15 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Text(
+                    AutoSizeText(
                       'Rp ${plan.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}',
                       style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
                         color: AppColors.primaryPurple,
                       ),
+                      maxLines: 1,
+                      minFontSize: 13,
                     ),
                     if (plan.monthlyPriceText != null) ...[
                       const SizedBox(height: 2),
@@ -439,6 +446,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
             height: 52,
             child: ElevatedButton(
               onPressed: () {
+                VibrationService.mediumImpact();
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => CheckoutScreen(plan: selectedPlan),
