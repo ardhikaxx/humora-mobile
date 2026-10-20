@@ -622,7 +622,7 @@ class ProfileScreen extends StatelessWidget {
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => const HistoryScreen(),
+                          builder: (_) => const SubscriptionDetailScreen(),
                         ),
                       );
                     },
