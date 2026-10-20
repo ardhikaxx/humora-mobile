@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'package:humora_mobile/main.dart';
 import 'package:humora_mobile/data/models/user_model.dart';
 import 'package:humora_mobile/data/models/series_model.dart';
@@ -26,6 +27,24 @@ import 'package:humora_mobile/screens/legal/terms_screen.dart';
 import 'package:humora_mobile/screens/legal/privacy_policy_screen.dart';
 import 'package:humora_mobile/core/services/permission_service.dart';
 import 'package:humora_mobile/core/services/local_notification_service.dart';
+
+class MockHomeSeriesProvider extends SeriesProvider {
+  bool _mockLoading = false;
+
+  @override
+  bool get isLoading => _mockLoading;
+
+  void setMockLoading(bool value) {
+    _mockLoading = value;
+    notifyListeners();
+  }
+
+  @override
+  Future<void> fetchSeries() async {}
+
+  @override
+  Future<void> fetchCategories() async {}
+}
 
 void main() {
   setUpAll(() {
@@ -454,6 +473,70 @@ void main() {
     final aboutDividers = tester.widgetList<Divider>(find.byType(Divider));
     expect(aboutDividers, isNotEmpty);
     expect(aboutDividers.first.color, equals(AppColors.dividerSubtle));
+  });
+
+  testWidgets('HomeScreen displays Skeletonizer and does not show empty state while isLoading is true and seriesList is empty', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(500, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final seriesProv = MockHomeSeriesProvider();
+    seriesProv.setSeriesForTesting([]);
+    seriesProv.setMockLoading(true);
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => AuthProvider()),
+          ChangeNotifierProvider<SeriesProvider>.value(value: seriesProv),
+          ChangeNotifierProvider(create: (_) => HistoryProvider()),
+          ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ],
+        child: const MaterialApp(
+          home: HomeScreen(),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Verify Skeletonizer is rendered
+    expect(find.byWidgetPredicate((w) => w is Skeletonizer), findsOneWidget);
+
+    // Verify HumoraEmptyState is NOT displayed while loading
+    expect(find.text('Katalog Video Belum Tersedia'), findsNothing);
+    expect(find.text('Muat Ulang Halaman'), findsNothing);
+  });
+
+  testWidgets('HomeScreen displays HumoraEmptyState when isLoading is false and seriesList is empty', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(500, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final seriesProv = MockHomeSeriesProvider();
+    seriesProv.setSeriesForTesting([]);
+    seriesProv.setMockLoading(false);
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => AuthProvider()),
+          ChangeNotifierProvider<SeriesProvider>.value(value: seriesProv),
+          ChangeNotifierProvider(create: (_) => HistoryProvider()),
+          ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ],
+        child: const MaterialApp(
+          home: HomeScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify Skeletonizer is not rendered
+    expect(find.byWidgetPredicate((w) => w is Skeletonizer), findsNothing);
+
+    // Verify HumoraEmptyState is displayed
+    expect(find.text('Katalog Video Belum Tersedia'), findsOneWidget);
+    expect(find.text('Muat Ulang Halaman'), findsOneWidget);
   });
 }
 
