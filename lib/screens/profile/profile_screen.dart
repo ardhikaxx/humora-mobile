@@ -29,49 +29,55 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 100),
-          child: Column(
-            children: [
-              // Top Pill App Bar
-              CustomPillAppBar(
-                title: 'Profil Saya',
-                showBackButton: false,
-                trailing: GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const AccountSettingsScreen(),
-                      ),
-                    );
-                  },
-                  child: const Padding(
-                    padding: EdgeInsets.all(4.0),
-                    child: Icon(
-                      LucideIcons.settings,
-                      color: AppColors.textPrimary,
-                      size: 20,
+        child: Column(
+          children: [
+            // Fixed Top Pill App Bar
+            CustomPillAppBar(
+              title: 'Profil Saya',
+              showBackButton: false,
+              trailing: GestureDetector(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AccountSettingsScreen(),
                     ),
+                  );
+                },
+                child: const Padding(
+                  padding: EdgeInsets.all(4.0),
+                  child: Icon(
+                    LucideIcons.settings,
+                    color: AppColors.textPrimary,
+                    size: 20,
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+            ),
+            const SizedBox(height: 12),
 
-              // Dynamic Header Card depending on User Tier
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _buildTierHeader(context, auth),
-              ),
-              const SizedBox(height: 16),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 100),
+                child: Column(
+                  children: [
+                    // Dynamic Header Card depending on User Tier
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _buildTierHeader(context, auth),
+                    ),
+                    const SizedBox(height: 16),
 
-              // Menu Card List
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _buildMenuListCard(context, auth),
+                    // Menu Card List
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _buildMenuListCard(context, auth),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
-              const SizedBox(height: 24),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
