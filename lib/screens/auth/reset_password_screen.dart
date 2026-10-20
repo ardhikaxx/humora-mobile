@@ -110,17 +110,21 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            children: [
-              CustomPillAppBar(
-                title: 'Ubah Kata Sandi Baru',
-                onBackTap: () => Navigator.of(context).pop(),
-              ),
-              const SizedBox(height: 12),
+        child: Column(
+          children: [
+            // Fixed Top Pill App Bar
+            CustomPillAppBar(
+              title: 'Ubah Kata Sandi Baru',
+              onBackTap: () => Navigator.of(context).pop(),
+            ),
+            const SizedBox(height: 12),
 
-              // Logo Center (Clean rounded circle)
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  children: [
+                    // Logo Center (Clean rounded circle)
               ClipOval(
                 child: Image.asset(
                   AppAssets.logoHumora,
@@ -440,6 +444,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           ),
         ),
       ),
-    );
+    ],
+  ),
+),
+);
   }
 }
