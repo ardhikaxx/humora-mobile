@@ -68,7 +68,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
       );
     } else {
-      final err = authProvider.errorMessage ?? 'Alamat email tidak terdaftar dalam database kami.';
+      final err = authProvider.errorMessage ?? 'Alamat email belum terdaftar di akun HUMORA.';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(err),
@@ -164,7 +164,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 36),
                 child: Text(
-                  'Masukkan alamat email yang terdaftar untuk verifikasi ke database sistem.',
+                  'Masukkan alamat email yang terdaftar untuk mengatur ulang kata sandi akun Anda.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
@@ -260,7 +260,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Sistem akan mencocokkan email dengan akun di basis data HUMORA.',
+                              'Email Anda akan dicocokkan secara otomatis dengan akun HUMORA yang sudah terdaftar.',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: AppColors.primaryDark,
