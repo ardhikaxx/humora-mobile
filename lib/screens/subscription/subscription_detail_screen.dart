@@ -71,22 +71,27 @@ class _SubscriptionDetailScreenState extends State<SubscriptionDetailScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: RefreshIndicator(
-          color: AppColors.primaryPurple,
-          onRefresh: _loadData,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CustomPillAppBar(
-                  title: 'Detail Langganan',
-                  onBackTap: () => Navigator.of(context).pop(),
-                ),
-                const SizedBox(height: 12),
+        child: Column(
+          children: [
+            // Fixed Top Pill App Bar
+            CustomPillAppBar(
+              title: 'Detail Langganan',
+              onBackTap: () => Navigator.of(context).pop(),
+            ),
 
-                // 1. Pending Transaction Notification (if awaiting admin verification)
-                _buildPendingBanner(context, sub, trx),
+            Expanded(
+              child: RefreshIndicator(
+                color: AppColors.primaryPurple,
+                onRefresh: _loadData,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 12),
+
+                      // 1. Pending Transaction Notification (if awaiting admin verification)
+                      _buildPendingBanner(context, sub, trx),
 
                 // 2. Main Subscription Status Card (Real API data)
                 Padding(
@@ -113,7 +118,10 @@ class _SubscriptionDetailScreenState extends State<SubscriptionDetailScreen> {
           ),
         ),
       ),
-    );
+    ],
+  ),
+),
+);
   }
 
   Widget _buildPendingBanner(
