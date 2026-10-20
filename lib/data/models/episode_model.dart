@@ -67,7 +67,7 @@ class EpisodeModel {
       likesCount: epLikesCount,
       thumbnailPath: json['thumbnail_url']?.toString() ??
           json['thumbnail_path']?.toString() ??
-          'assets/images/thumbnails/thumb_caradeketin.png',
+          '',
       isPremium: isPremium,
       isFree: isFree,
       isLocked: isLocked,

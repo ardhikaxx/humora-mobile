@@ -384,16 +384,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         );
       }
     } else {
+      final baseHost = ApiConfig.baseUrl.replaceFirst('/api/v1', '');
       buttons.add(
         _buildMethodButton(
           code: 'bca',
           label: 'BCA Transfer',
+          logoUrl: '$baseHost/images/banks/bca.png',
         ),
       );
       buttons.add(
         _buildMethodButton(
           code: 'mandiri',
           label: 'Mandiri Transfer',
+          logoUrl: '$baseHost/images/banks/mandiri.png',
         ),
       );
     }
@@ -451,24 +454,37 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Widget _buildBankLogoWidget({
     String? logoUrl,
+    String? bankCode,
     double height = 20,
     double? width,
   }) {
-    if (logoUrl != null && logoUrl.isNotEmpty) {
-      String resolvedUrl = logoUrl.trim();
+    String resolvedUrl = (logoUrl ?? '').trim();
+
+    // If logoUrl is not provided or empty, but bankCode is given, construct from backend API
+    if (resolvedUrl.isEmpty && bankCode != null && bankCode.isNotEmpty && bankCode != 'qris') {
+      final baseHost = ApiConfig.baseUrl.replaceFirst('/api/v1', '');
+      resolvedUrl = '$baseHost/images/banks/${bankCode.toLowerCase()}.png';
+    }
+
+    if (resolvedUrl.isNotEmpty) {
       // Handle relative paths
       if (resolvedUrl.startsWith('/')) {
         final uri = Uri.tryParse(ApiConfig.baseUrl);
         if (uri != null) {
           resolvedUrl = '${uri.scheme}://${uri.authority}$resolvedUrl';
         }
-      } else if (resolvedUrl.contains('localhost') || resolvedUrl.contains('127.0.0.1')) {
-        // Adapt localhost to active server IP when running on physical device or emulator
-        final uri = Uri.tryParse(ApiConfig.baseUrl);
-        if (uri != null && !uri.host.contains('localhost') && !uri.host.contains('127.0.0.1')) {
-          resolvedUrl = resolvedUrl
-              .replaceFirst('localhost:8000', uri.authority)
-              .replaceFirst('127.0.0.1:8000', uri.authority);
+      } else {
+        // Adapt host and port to active ApiConfig.baseUrl so localhost/LAN/emulator always resolve
+        final baseUri = Uri.tryParse(ApiConfig.baseUrl);
+        final imgUri = Uri.tryParse(resolvedUrl);
+        if (baseUri != null && imgUri != null && imgUri.hasScheme && imgUri.hasAuthority) {
+          if (imgUri.authority != baseUri.authority) {
+            resolvedUrl = imgUri.replace(
+              scheme: baseUri.scheme,
+              host: baseUri.host,
+              port: baseUri.hasPort ? baseUri.port : null,
+            ).toString();
+          }
         }
       }
 
@@ -479,30 +495,40 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         fit: BoxFit.contain,
         placeholder: (context, url) => SizedBox(
           height: height,
-          width: width ?? height * 1.5,
-          child: const Center(
-            child: SizedBox(
-              width: 10,
-              height: 10,
-              child: CircularProgressIndicator(
-                strokeWidth: 1.5,
-                color: AppColors.primaryPurple,
+          width: width ?? (height * 1.8),
+          child: Center(
+            child: Text(
+              (bankCode ?? 'BANK').toUpperCase(),
+              style: TextStyle(
+                fontSize: height * 0.45,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primaryPurple.withValues(alpha: 0.6),
               ),
             ),
           ),
         ),
-        errorWidget: (context, url, error) => Icon(
-          LucideIcons.landmark,
-          size: height,
-          color: AppColors.primaryPurple,
+        errorWidget: (context, url, error) => Center(
+          child: Text(
+            (bankCode ?? 'BANK').toUpperCase(),
+            style: TextStyle(
+              fontSize: height * 0.45,
+              fontWeight: FontWeight.w800,
+              color: AppColors.primaryPurple,
+            ),
+          ),
         ),
       );
     }
 
-    return Icon(
-      LucideIcons.landmark,
-      size: height,
-      color: AppColors.primaryPurple,
+    return Center(
+      child: Text(
+        (bankCode ?? 'BANK').toUpperCase(),
+        style: TextStyle(
+          fontSize: height * 0.45,
+          fontWeight: FontWeight.w800,
+          color: AppColors.primaryPurple,
+        ),
+      ),
     );
   }
 
@@ -559,6 +585,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       )
                     : _buildBankLogoWidget(
                         logoUrl: logoUrl,
+                        bankCode: code,
                         height: 20,
                       ),
               ),
@@ -687,6 +714,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
                 child: _buildBankLogoWidget(
                   logoUrl: selectedBank?.bankLogoUrl,
+                  bankCode: selectedBank?.code ?? _selectedMethod,
                   height: 22,
                 ),
               ),

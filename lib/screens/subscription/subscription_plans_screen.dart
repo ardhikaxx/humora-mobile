@@ -25,6 +25,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<SubscriptionProvider>().fetchPlans();
+      context.read<SubscriptionProvider>().fetchPaymentInfo();
     });
   }
 

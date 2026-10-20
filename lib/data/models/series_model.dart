@@ -81,7 +81,7 @@ class SeriesModel {
 
     final thumbnail = json['thumbnail_url']?.toString() ??
         json['thumbnail_path']?.toString() ??
-        'assets/images/thumbnails/thumb_caradeketin.png';
+        '';
 
     return SeriesModel(
       id: json['id']?.toString() ?? '',

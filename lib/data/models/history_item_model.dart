@@ -37,8 +37,7 @@ class HistoryItemModel {
       seriesTitle: json['series_title']?.toString() ?? '',
       episodeNumberText: 'Video $epNum',
       episodeTitle: json['episode_title']?.toString() ?? 'Episode $epNum',
-      thumbnailPath: json['thumbnail_url']?.toString() ??
-          'assets/images/thumbnails/thumb_caradeketin.png',
+      thumbnailPath: json['thumbnail_url']?.toString() ?? '',
       progressPercent: progress,
       dateText: json['updated_at'] != null
           ? json['updated_at'].toString().split('T').first
