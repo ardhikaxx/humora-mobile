@@ -100,10 +100,13 @@ class HistoryProvider extends ChangeNotifier {
 
     if (episodeId != null) {
       try {
+        final sIdInt = int.tryParse(seriesId);
         await _api.updateWatchProgress(
           episodeId: episodeId,
+          seriesId: sIdInt,
           lastPosition: lastPosition,
           durationSeconds: durationSeconds,
+          progressPercent: progressPercent,
         );
       } catch (_) {}
     }
