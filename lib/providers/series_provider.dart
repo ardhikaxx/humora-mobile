@@ -24,7 +24,7 @@ class SeriesProvider extends ChangeNotifier {
   String _selectedCategory = 'Semua';
   final Set<String> _likedEpisodes = {};
   final Set<String> _likedSeries = {};
-  bool _isLoading = false;
+  bool _isLoading = true;
   String? _errorMessage;
 
   List<SeriesModel> get allSeries => _seriesList;
@@ -244,6 +244,11 @@ class SeriesProvider extends ChangeNotifier {
 
   void setSeriesForTesting(List<SeriesModel> series) {
     _seriesList = series;
+    notifyListeners();
+  }
+
+  void setIsLoadingForTesting(bool loading) {
+    _isLoading = loading;
     notifyListeners();
   }
 }
