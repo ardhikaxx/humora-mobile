@@ -11,6 +11,7 @@ import 'providers/notification_provider.dart';
 import 'providers/settings_provider.dart';
 import 'providers/subscription_provider.dart';
 import 'providers/transaction_provider.dart';
+import 'providers/connectivity_provider.dart';
 import 'screens/main_navigation_shell.dart';
 
 final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
@@ -45,6 +46,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
         ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
         ChangeNotifierProvider(create: (_) => TransactionProvider()),
+        ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
       ],
       child: const HumoraApp(),
     ),
