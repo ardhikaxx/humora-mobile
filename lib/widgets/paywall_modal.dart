@@ -205,7 +205,7 @@ class PaywallModal extends StatelessWidget {
                 ),
                 RichText(
                   text: const TextSpan(
-                    text: 'Rp19.000 ',
+                    text: 'Rp15.000 ',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
@@ -213,7 +213,7 @@ class PaywallModal extends StatelessWidget {
                     ),
                     children: [
                       TextSpan(
-                        text: '/ 30 hari',
+                        text: '/ 7 hari (15 Video)',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,

@@ -69,12 +69,59 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  bool get hasFullAccess => _user.hasFullAccess;
+  bool get hasWeeklyActive => _user.hasWeeklyActive;
+  bool get canPurchaseAddon => _user.canPurchaseAddon;
+  List<int> get accessibleEpisodeIds => _user.accessibleEpisodeIds;
+  int get accessibleEpisodesCount => _user.accessibleEpisodesCount;
+
   // Access permission rule for video playback:
-  // Episodes 1 and 2 are always free preview for anyone (guest, free, expired).
-  // Episode 3 and above requires active VIP status.
-  bool canAccessEpisode(int episodeNumber) {
-    if (isPremium) return true;
-    return episodeNumber <= 2;
+  // - If series has <= 2 total episodes, only Episode 1 is free trial (Episode 2 is locked).
+  // - If series has > 2 total episodes, Episodes 1 & 2 are free trial (Episode 3+ are locked).
+  // - For locked episodes:
+  //   * If user has active Full Access -> accessible!
+  //   * If episodeId is in accessibleEpisodeIds -> accessible!
+  //   * Otherwise -> locked.
+  bool canAccessEpisode(
+    int episodeNumber, {
+    int? episodeId,
+    int? seriesTotalEpisodes,
+  }) {
+    // 1. Free Trial Evaluation
+    final bool isFreeTrial;
+    if (seriesTotalEpisodes != null && seriesTotalEpisodes <= 2) {
+      isFreeTrial = episodeNumber <= 1;
+    } else {
+      isFreeTrial = episodeNumber <= 2;
+    }
+
+    if (isFreeTrial) {
+      return true;
+    }
+
+    // 2. Must be logged in and active premium
+    if (!isPremium) {
+      return false;
+    }
+
+    // 3. If user has active Full Access to whole catalog
+    if (_user.hasFullAccess) {
+      return true;
+    }
+
+    // 4. If specific episodeId is provided, check if it's in user's active quota
+    if (episodeId != null && episodeId > 0) {
+      if (_user.accessibleEpisodeIds.contains(episodeId)) {
+        return true;
+      }
+    }
+
+    // 5. Fallback for demo/tier switching or legacy VIP without specific episode lists
+    if (_user.accessibleEpisodeIds.isEmpty && isPremium) {
+      return true;
+    }
+
+    return false;
   }
 
   void switchTier(UserTier tier) {

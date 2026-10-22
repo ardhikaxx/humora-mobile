@@ -369,7 +369,7 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Buka episode 3 hingga tamat di seluruh series dengan berlangganan HUMORA Premium mulai Rp19.000.',
+            'Buka akses paket mingguan 15 video atau Full Access HUMORA mulai Rp15.000.',
             style: TextStyle(
               fontSize: 12,
               color: AppColors.textSecondary,
@@ -491,13 +491,15 @@ class ProfileScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(LucideIcons.check, size: 15, color: AppColors.primaryYellow),
-                  SizedBox(width: 6),
+                  const Icon(LucideIcons.check, size: 15, color: AppColors.primaryYellow),
+                  const SizedBox(width: 6),
                   Text(
-                    'Semua episode terbuka',
-                    style: TextStyle(
+                    auth.user.hasFullAccess
+                        ? 'Semua video terbuka'
+                        : '${auth.user.accessibleEpisodesCount} video aktif',
+                    style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: AppColors.primaryYellow,

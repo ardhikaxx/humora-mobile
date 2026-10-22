@@ -279,7 +279,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       final nextEp = nextEpList.first;
       final auth = context.read<AuthProvider>();
 
-      if (!auth.canAccessEpisode(nextEp.episodeNumber)) {
+      if (!auth.canAccessEpisode(
+        nextEp.episodeNumber,
+        episodeId: int.tryParse(nextEp.id),
+        seriesTotalEpisodes: series.episodes.length,
+      )) {
         // Next video is VIP (e.g. Episode 3) and user is Free/Guest:
         // Pause playback and present the VIP subscription paywall modal
         _stopVideoPlaybackOnly();
@@ -322,8 +326,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
     final auth = context.read<AuthProvider>();
 
-    // Paywall Check: Episode 3+ requires VIP status
-    if (!auth.canAccessEpisode(_currentEpisodeNumber)) {
+    // Paywall Check: Episode 3+ requires VIP status (or Ep 2 if series only has 2 episodes)
+    if (!auth.canAccessEpisode(
+      _currentEpisodeNumber,
+      episodeId: int.tryParse(episode.id),
+      seriesTotalEpisodes: series.episodes.length,
+    )) {
       _safeSetState(() {
         _hasVideoError = true;
         _isControllerInitializing = false;
@@ -526,8 +534,28 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
   void _playEpisode(int episodeNumber) {
     VibrationService.mediumImpact();
+    final seriesProv = context.read<SeriesProvider>();
+    final series = seriesProv.getSeriesById(widget.seriesId) ?? seriesProv.featuredSeries;
+    final targetEp = series.episodes.firstWhere(
+      (e) => e.episodeNumber == episodeNumber,
+      orElse: () => series.episodes.isNotEmpty ? series.episodes.first : const EpisodeModel(
+        id: '1',
+        seriesId: '1',
+        episodeNumber: 1,
+        title: 'Episode 1',
+        synopsis: '',
+        duration: '02:00',
+        likes: '0',
+        thumbnailPath: '',
+      ),
+    );
+
     final auth = context.read<AuthProvider>();
-    if (!auth.canAccessEpisode(episodeNumber)) {
+    if (!auth.canAccessEpisode(
+      episodeNumber,
+      episodeId: int.tryParse(targetEp.id),
+      seriesTotalEpisodes: series.episodes.length,
+    )) {
       _stopVideoPlaybackOnly();
       PaywallModal.show(context);
       return;

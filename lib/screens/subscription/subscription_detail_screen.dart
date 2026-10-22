@@ -366,6 +366,32 @@ class _SubscriptionDetailScreenState extends State<SubscriptionDetailScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Row(
+                  children: [
+                    Icon(LucideIcons.playCircle, size: 14, color: Colors.white70),
+                    SizedBox(width: 6),
+                    Text(
+                      'Hak Akses Video',
+                      style: TextStyle(fontSize: 12, color: Colors.white70),
+                    ),
+                  ],
+                ),
+                Text(
+                  auth.user.hasFullAccess
+                      ? 'Seluruh Katalog (Full Access)'
+                      : '${auth.user.accessibleEpisodesCount} Video Aktif',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       );
@@ -525,7 +551,7 @@ class _SubscriptionDetailScreenState extends State<SubscriptionDetailScreen> {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Anda saat ini hanya dapat menonton 2 episode pertama secara gratis. Aktifkan VIP untuk menonton seluruh episode tanpa batas.',
+            'Anda saat ini hanya dapat menonton episode trial gratis (1 video untuk series 2 episode, atau 2 video untuk series lainnya). Beli Paket Mingguan atau Full Access untuk akses video eksklusif.',
             style: TextStyle(
               fontSize: 12.5,
               color: AppColors.textSecondary,

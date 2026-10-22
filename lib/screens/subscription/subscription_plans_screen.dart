@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/services/vibration_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/subscription_plan_model.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
 import '../../widgets/humora_empty_state.dart';
@@ -322,6 +323,43 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                           color: AppColors.textSecondary,
                         ),
                       ),
+                      if (plan.formattedQuota.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isSelected ? AppColors.accentPurpleSoft : const Color(0xFFF4F4F5),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'Kuota: ${plan.formattedQuota}',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                              color: isSelected ? AppColors.accentPurple : AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (plan.isAddon && !context.read<AuthProvider>().canPurchaseAddon) ...[
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF2F2),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: const Color(0xFFFECACA)),
+                          ),
+                          child: const Text(
+                            'Khusus Paket Mingguan Aktif',
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFFDC2626),
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 4),
                       Text(
                         plan.description,
@@ -402,6 +440,8 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
   }
 
   Widget _buildBottomBar(BuildContext context, SubscriptionPlanModel selectedPlan) {
+    final auth = context.watch<AuthProvider>();
+    final isAddonBlocked = selectedPlan.isAddon && !auth.canPurchaseAddon;
     final formattedPrice = 'Rp ${selectedPlan.price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}';
 
     return Container(
@@ -419,6 +459,29 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (isAddonBlocked) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              margin: const EdgeInsets.only(bottom: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFFECACA)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(LucideIcons.alertCircle, size: 16, color: Color(0xFFDC2626)),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Paket Add-on hanya dapat dibeli jika Anda memiliki Paket Akses Mingguan aktif.',
+                      style: TextStyle(fontSize: 11, color: Color(0xFF991B1B), fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -446,17 +509,21 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
             width: double.infinity,
             height: 52,
             child: ElevatedButton(
-              onPressed: () {
-                VibrationService.mediumImpact();
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => CheckoutScreen(plan: selectedPlan),
-                  ),
-                );
-              },
+              onPressed: isAddonBlocked
+                  ? null
+                  : () {
+                      VibrationService.mediumImpact();
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => CheckoutScreen(plan: selectedPlan),
+                        ),
+                      );
+                    },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryDark,
                 foregroundColor: Colors.white,
+                disabledBackgroundColor: const Color(0xFFE4E4E7),
+                disabledForegroundColor: const Color(0xFFA1A1AA),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),

@@ -512,7 +512,12 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
     EpisodeModel episode,
     AuthProvider auth,
   ) {
-    final isLocked = episode.isPremium && !auth.isPremium;
+    final totalEps = (series.episodes is List) ? (series.episodes as List).length : null;
+    final isLocked = !auth.canAccessEpisode(
+      episode.episodeNumber,
+      episodeId: int.tryParse(episode.id),
+      seriesTotalEpisodes: totalEps,
+    );
     final isSelected = episode.episodeNumber == 1; // Highlighted in detail video reference
 
     return GestureDetector(
