@@ -847,7 +847,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
               ),
               const SizedBox(height: 14),
 
-              // Likes and Feedback Row (Instagram-style Like)
+              // Likes and Feedback Row
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
@@ -877,64 +877,38 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                         decoration: BoxDecoration(
-                          color: isEpLiked ? const Color(0xFFFFF0F1) : AppColors.surface,
-                          borderRadius: BorderRadius.circular(24),
+                          color: isEpLiked ? const Color(0xFFFEE2E2) : AppColors.surface,
+                          borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: isEpLiked ? const Color(0xFFFFCDD2) : AppColors.border,
+                            color: isEpLiked ? const Color(0xFFFCA5A5) : AppColors.border,
                             width: 1.2,
                           ),
-                          boxShadow: isEpLiked
-                              ? [
-                                  BoxShadow(
-                                    color: const Color(0xFFED4956).withValues(alpha: 0.15),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ]
-                              : null,
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            TweenAnimationBuilder<double>(
-                              key: ValueKey(isEpLiked),
-                              duration: const Duration(milliseconds: 300),
-                              tween: Tween<double>(begin: isEpLiked ? 0.65 : 0.9, end: 1.0),
-                              curve: Curves.elasticOut,
-                              builder: (context, scale, child) {
-                                return Transform.scale(
-                                  scale: scale,
-                                  child: Icon(
-                                    isEpLiked ? Icons.favorite : Icons.favorite_border,
-                                    size: 22,
-                                    color: isEpLiked ? const Color(0xFFED4956) : AppColors.textPrimary,
-                                  ),
-                                );
-                              },
+                            Icon(
+                              LucideIcons.heart,
+                              size: 16,
+                              color: isEpLiked ? const Color(0xFFEF4444) : AppColors.textSecondary,
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 6),
                             Text(
-                              currentEpisode.likesCount >= 1000
-                                  ? '${(currentEpisode.likesCount / 1000).toStringAsFixed(1)}k'
-                                  : '${currentEpisode.likesCount}',
+                              isEpLiked ? 'Disukai' : currentEpisode.likes,
                               style: TextStyle(
-                                fontSize: 13.5,
+                                fontSize: 12.5,
                                 fontWeight: FontWeight.w700,
-                                color: isEpLiked ? const Color(0xFFED4956) : AppColors.textPrimary,
+                                color: isEpLiked ? const Color(0xFFEF4444) : AppColors.textPrimary,
                               ),
                             ),
                           ],
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Text(
-                      isEpLiked ? 'Disukai oleh Anda' : 'Ketuk untuk menyukai',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: isEpLiked ? FontWeight.w600 : FontWeight.w400,
-                        color: isEpLiked ? const Color(0xFFED4956) : AppColors.textMuted,
-                      ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'Ketuk untuk menyukai video ini',
+                      style: TextStyle(fontSize: 11, color: AppColors.textMuted),
                     ),
                   ],
                 ),
