@@ -24,7 +24,7 @@
 
 **HUMORA Mobile** adalah aplikasi pemutar video serial komedi pendek berbasis Flutter yang menghadirkan pengalaman hiburan humor modern berdurasi ringkas (~2 menit per episode). Dirancang dengan antarmuka yang bersih, intuitif, dan responsif, aplikasi ini mengadaptasi kebiasaan scrolling pengguna masa kini agar dapat tertawa kapan saja dan di mana saja.
 
-Aplikasi ini dilengkapi dengan fitur-fitur mutakhir seperti *Picture-in-Picture (PiP)*, *haptic feedback* interaktif, panduan sorotan pengguna baru (*spotlight walkthrough*), pemutaran video berkecepatan tinggi dengan proteksi layar tetap menyala (*wakelock*), deteksi status jaringan *real-time*, serta manajemen *cache* lokal untuk menghemat kuota internet pengguna.
+Aplikasi ini dilengkapi dengan fitur-fitur mutakhir seperti *haptic feedback* interaktif, panduan sorotan pengguna baru (*spotlight walkthrough*), pemutaran video berkecepatan tinggi dengan proteksi layar tetap menyala (*wakelock*), deteksi status jaringan *real-time*, serta manajemen *cache* lokal untuk menghemat kuota internet pengguna.
 
 ---
 

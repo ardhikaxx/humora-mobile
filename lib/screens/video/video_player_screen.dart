@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'package:auto_size_text/auto_size_text.dart';
-import 'package:floating/floating.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -11,7 +10,6 @@ import 'package:video_player/video_player.dart';
 import '../../core/network/api_config.dart';
 import '../../core/network/api_service.dart';
 import '../../core/services/humora_cache_service.dart';
-import '../../core/services/floating_service.dart';
 import '../../core/services/vibration_service.dart';
 import '../../core/services/wakelock_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -657,43 +655,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     return '$minutes:$seconds';
   }
 
-  Future<void> _enterPipMode() async {
-    VibrationService.lightImpact();
-    await FloatingService.enablePip(
-      aspectRatio: const Rational.landscape(),
-    );
-  }
-
-  Widget _buildPipPlayer() {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Center(
-        child: _videoController != null && _videoController!.value.isInitialized
-            ? AspectRatio(
-                aspectRatio: _videoController!.value.aspectRatio > 0
-                    ? _videoController!.value.aspectRatio
-                    : 16 / 9,
-                child: VideoPlayer(_videoController!),
-              )
-            : const Center(
-                child: CircularProgressIndicator(color: AppColors.primaryYellow),
-              ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (FloatingService.disableInTests) {
-      return _buildNormalScaffold(context);
-    }
-    return PiPSwitcher(
-      childWhenEnabled: _buildPipPlayer(),
-      childWhenDisabled: _buildNormalScaffold(context),
-    );
-  }
-
-  Widget _buildNormalScaffold(BuildContext context) {
     final seriesProv = context.watch<SeriesProvider>();
     final auth = context.watch<AuthProvider>();
     final series = seriesProv.getSeriesById(widget.seriesId) ?? seriesProv.featuredSeries;
@@ -1479,24 +1442,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          // Picture-in-Picture Button
-                          GestureDetector(
-                            onTap: _enterPipMode,
-                            child: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.55),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                LucideIcons.pictureInPicture,
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                            ),
-                          ),
+
                         ],
                       ),
                     ),

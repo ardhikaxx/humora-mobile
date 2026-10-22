@@ -32,7 +32,6 @@ import 'package:humora_mobile/core/services/connectivity_service.dart';
 import 'package:humora_mobile/core/services/wakelock_service.dart';
 import 'package:humora_mobile/core/services/vibration_service.dart';
 import 'package:humora_mobile/core/services/showcase_service.dart';
-import 'package:humora_mobile/core/services/floating_service.dart';
 import 'package:humora_mobile/providers/connectivity_provider.dart';
 import 'package:humora_mobile/screens/subscription/checkout_screen.dart';
 import 'package:humora_mobile/screens/subscription/subscription_plans_screen.dart';
@@ -94,7 +93,6 @@ void main() {
     WakelockService.disableInTests = true;
     VibrationService.disableInTests = true;
     ShowcaseService.disableInTests = true;
-    FloatingService.disableInTests = true;
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
@@ -651,15 +649,11 @@ void main() {
     expect(settingsProvider.cacheSizeMb, equals(0.0));
   });
 
-  test('WakelockService and FloatingService run safely without exceptions in tests', () async {
+  test('WakelockService runs safely without exceptions in tests', () async {
     WakelockService.disableInTests = true;
     await WakelockService.enable();
     await WakelockService.disable();
     expect(await WakelockService.isEnabled(), isFalse);
-
-    FloatingService.disableInTests = true;
-    expect(await FloatingService.isPipAvailable(), isFalse);
-    await FloatingService.enablePip();
   });
 
   test('VibrationService provides light, medium, and success patterns safely', () async {

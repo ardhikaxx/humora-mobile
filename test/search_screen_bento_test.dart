@@ -14,7 +14,6 @@ import 'package:humora_mobile/core/services/connectivity_service.dart';
 import 'package:humora_mobile/core/services/wakelock_service.dart';
 import 'package:humora_mobile/core/services/vibration_service.dart';
 import 'package:humora_mobile/core/services/showcase_service.dart';
-import 'package:humora_mobile/core/services/floating_service.dart';
 
 class TestSearchSeriesProvider extends SeriesProvider {
   @override
@@ -34,7 +33,6 @@ void main() {
     WakelockService.disableInTests = true;
     VibrationService.disableInTests = true;
     ShowcaseService.disableInTests = true;
-    FloatingService.disableInTests = true;
   });
 
   final dummyEpisodes1 = [
