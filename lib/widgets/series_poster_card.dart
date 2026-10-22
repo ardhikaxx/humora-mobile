@@ -17,8 +17,8 @@ class SeriesPosterCard extends StatelessWidget {
   const SeriesPosterCard({
     super.key,
     required this.series,
-    this.width = 145,
-    this.height = 205,
+    this.width = 230,
+    this.height = 120,
     this.badgeLabel,
     this.badgeColor,
     this.onTap,
