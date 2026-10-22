@@ -59,6 +59,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   String _viewingSessionId = '';
   int _sessionWatchedSeconds = 0;
   Timer? _heartbeatTimer;
+  Timer? _likeSyncTimer;
   final ApiService _apiService = ApiService();
 
   @override
@@ -68,6 +69,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     _currentEpisodeNumber = widget.initialEpisodeNumber;
     _isControllerInitializing = true;
     _showControls = true;
+    _startLikeSyncTimer();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted || _isDisposed || _isPopping) return;
       final seriesProv = context.read<SeriesProvider>();
@@ -123,10 +125,34 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     _heartbeatTimer?.cancel();
+    _likeSyncTimer?.cancel();
     _sendViewingHeartbeat();
     _syncWatchHistory();
     _disposePlayer();
     super.dispose();
+  }
+
+  void _startLikeSyncTimer() {
+    _likeSyncTimer?.cancel();
+    _likeSyncTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      _triggerLikeSync();
+    });
+    _triggerLikeSync();
+  }
+
+  void _triggerLikeSync() {
+    if (!mounted || _isDisposed || _isPopping) return;
+    try {
+      final seriesProv = context.read<SeriesProvider>();
+      final series = seriesProv.getSeriesById(widget.seriesId);
+      if (series != null && series.episodes.isNotEmpty) {
+        final ep = series.episodes.firstWhere(
+          (e) => e.episodeNumber == _currentEpisodeNumber,
+          orElse: () => series.episodes.first,
+        );
+        seriesProv.syncEpisodeLikeStatus(ep.id);
+      }
+    } catch (_) {}
   }
 
   /// Safely schedule state updates outside buildScope and after frame if busy
@@ -578,6 +604,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     });
 
     _initializeVideoPlayer();
+    _triggerLikeSync();
   }
 
   void _togglePlayPause() {
@@ -820,7 +847,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
               ),
               const SizedBox(height: 14),
 
-              // Likes and Feedback Row
+              // Likes and Feedback Row (Instagram-style Like)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
@@ -832,6 +859,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                         final success = await seriesProv.toggleEpisodeLike(currentEpisode.id);
                         if (!context.mounted) return;
                         if (success) {
+                          _triggerLikeSync();
                           ScaffoldMessenger.of(context).clearSnackBars();
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -849,38 +877,64 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                         decoration: BoxDecoration(
-                          color: isEpLiked ? const Color(0xFFFEE2E2) : AppColors.surface,
-                          borderRadius: BorderRadius.circular(20),
+                          color: isEpLiked ? const Color(0xFFFFF0F1) : AppColors.surface,
+                          borderRadius: BorderRadius.circular(24),
                           border: Border.all(
-                            color: isEpLiked ? const Color(0xFFFCA5A5) : AppColors.border,
+                            color: isEpLiked ? const Color(0xFFFFCDD2) : AppColors.border,
                             width: 1.2,
                           ),
+                          boxShadow: isEpLiked
+                              ? [
+                                  BoxShadow(
+                                    color: const Color(0xFFED4956).withValues(alpha: 0.15),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : null,
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              LucideIcons.heart,
-                              size: 16,
-                              color: isEpLiked ? const Color(0xFFEF4444) : AppColors.textSecondary,
+                            TweenAnimationBuilder<double>(
+                              key: ValueKey(isEpLiked),
+                              duration: const Duration(milliseconds: 300),
+                              tween: Tween<double>(begin: isEpLiked ? 0.65 : 0.9, end: 1.0),
+                              curve: Curves.elasticOut,
+                              builder: (context, scale, child) {
+                                return Transform.scale(
+                                  scale: scale,
+                                  child: Icon(
+                                    isEpLiked ? Icons.favorite : Icons.favorite_border,
+                                    size: 22,
+                                    color: isEpLiked ? const Color(0xFFED4956) : AppColors.textPrimary,
+                                  ),
+                                );
+                              },
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 8),
                             Text(
-                              isEpLiked ? 'Disukai • ${currentEpisode.likes}' : currentEpisode.likes,
+                              currentEpisode.likesCount >= 1000
+                                  ? '${(currentEpisode.likesCount / 1000).toStringAsFixed(1)}k'
+                                  : '${currentEpisode.likesCount}',
                               style: TextStyle(
-                                fontSize: 12.5,
+                                fontSize: 13.5,
                                 fontWeight: FontWeight.w700,
-                                color: isEpLiked ? const Color(0xFFEF4444) : AppColors.textPrimary,
+                                color: isEpLiked ? const Color(0xFFED4956) : AppColors.textPrimary,
                               ),
                             ),
                           ],
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    const Text(
-                      'Ketuk untuk menyukai video ini',
-                      style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                    const SizedBox(width: 12),
+                    Text(
+                      isEpLiked ? 'Disukai oleh Anda' : 'Ketuk untuk menyukai',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: isEpLiked ? FontWeight.w600 : FontWeight.w400,
+                        color: isEpLiked ? const Color(0xFFED4956) : AppColors.textMuted,
+                      ),
                     ),
                   ],
                 ),

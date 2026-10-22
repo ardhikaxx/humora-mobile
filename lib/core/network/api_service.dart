@@ -374,6 +374,10 @@ class ApiService {
     return await _dio.post('/episodes/$episodeId/like');
   }
 
+  Future<Response> getEpisodeLikeStatus(int episodeId) async {
+    return await _dio.get('/episodes/$episodeId/like-status');
+  }
+
   // --- NOTIFICATIONS ---
   Future<Response> getNotifications() async {
     return await _dio.get('/notifications');

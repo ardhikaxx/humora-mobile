@@ -265,6 +265,47 @@ class SeriesProvider extends ChangeNotifier {
     }
   }
 
+  /// Real-time sync for episode like status and count from server
+  Future<void> syncEpisodeLikeStatus(String episodeId) async {
+    final epIdInt = int.tryParse(episodeId);
+    if (epIdInt == null) return;
+    try {
+      final res = await _api.getEpisodeLikeStatus(epIdInt);
+      if (res.data != null && res.data['data'] is Map<String, dynamic>) {
+        final data = res.data['data'] as Map<String, dynamic>;
+        final serverIsLiked = data['is_liked'] == true;
+        final serverLikesCount = int.tryParse(data['likes_count'].toString()) ?? 0;
+
+        final wasLiked = _likedEpisodes.contains(episodeId);
+        bool changed = false;
+
+        if (serverIsLiked != wasLiked) {
+          if (serverIsLiked) {
+            _likedEpisodes.add(episodeId);
+          } else {
+            _likedEpisodes.remove(episodeId);
+          }
+          changed = true;
+        }
+
+        for (final s in _seriesList) {
+          final epIdx = s.episodes.indexWhere((e) => e.id == episodeId);
+          if (epIdx != -1) {
+            if (s.episodes[epIdx].likesCount != serverLikesCount || s.episodes[epIdx].isLiked != serverIsLiked) {
+              changed = true;
+            }
+            break;
+          }
+        }
+
+        if (changed) {
+          _applyServerEpisodeLike(episodeId, serverIsLiked, serverLikesCount);
+          notifyListeners();
+        }
+      }
+    } catch (_) {}
+  }
+
   bool isSeriesLiked(String seriesId) => _likedSeries.contains(seriesId);
 
   Future<bool> toggleSeriesLike(String seriesId) async {
