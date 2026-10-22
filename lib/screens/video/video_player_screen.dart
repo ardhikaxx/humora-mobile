@@ -283,6 +283,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
         nextEp.episodeNumber,
         episodeId: int.tryParse(nextEp.id),
         seriesTotalEpisodes: series.episodes.length,
+        isFreeEpisode: nextEp.isFree,
       )) {
         // Next video is VIP (e.g. Episode 3) and user is Free/Guest:
         // Pause playback and present the VIP subscription paywall modal
@@ -331,6 +332,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _currentEpisodeNumber,
       episodeId: int.tryParse(episode.id),
       seriesTotalEpisodes: series.episodes.length,
+      isFreeEpisode: episode.isFree,
     )) {
       _safeSetState(() {
         _hasVideoError = true;
@@ -555,6 +557,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       episodeNumber,
       episodeId: int.tryParse(targetEp.id),
       seriesTotalEpisodes: series.episodes.length,
+      isFreeEpisode: targetEp.isFree,
     )) {
       _stopVideoPlaybackOnly();
       PaywallModal.show(context);

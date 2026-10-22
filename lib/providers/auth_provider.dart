@@ -86,17 +86,24 @@ class AuthProvider extends ChangeNotifier {
     int episodeNumber, {
     int? episodeId,
     int? seriesTotalEpisodes,
+    bool? isFreeEpisode,
   }) {
-    // 1. Free Trial Evaluation
-    final bool isFreeTrial;
-    if (seriesTotalEpisodes != null && seriesTotalEpisodes <= 2) {
-      isFreeTrial = episodeNumber <= 1;
+    // 1. Free Trial Evaluation (Honoring explicit isFreeEpisode if provided)
+    if (isFreeEpisode != null) {
+      if (isFreeEpisode) {
+        return true;
+      }
     } else {
-      isFreeTrial = episodeNumber <= 2;
-    }
+      final bool isFreeTrial;
+      if (seriesTotalEpisodes != null && seriesTotalEpisodes <= 2) {
+        isFreeTrial = episodeNumber <= 1;
+      } else {
+        isFreeTrial = episodeNumber <= 2;
+      }
 
-    if (isFreeTrial) {
-      return true;
+      if (isFreeTrial) {
+        return true;
+      }
     }
 
     // 2. Must be logged in and active premium

@@ -517,6 +517,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
       episode.episodeNumber,
       episodeId: int.tryParse(episode.id),
       seriesTotalEpisodes: totalEps,
+      isFreeEpisode: episode.isFree,
     );
     final isSelected = episode.episodeNumber == 1; // Highlighted in detail video reference
 

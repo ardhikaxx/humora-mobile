@@ -43,8 +43,13 @@ class EpisodeModel {
     final epNum = json['episode_number'] != null
         ? int.tryParse(json['episode_number'].toString()) ?? 1
         : 1;
-    final isFree = json['is_free'] == true || epNum <= 2;
-    final isPremium = json['is_premium'] == true || (!isFree);
+    final accessType = json['access_type']?.toString() ?? 'free';
+    final isFree = json['is_free'] != null
+        ? json['is_free'] == true
+        : (accessType == 'free');
+    final isPremium = json['is_premium'] != null
+        ? json['is_premium'] == true
+        : (!isFree);
     final isLocked = json['is_locked'] == true;
     final epLikesCount = json['likes_count'] != null
         ? int.tryParse(json['likes_count'].toString()) ?? 0
