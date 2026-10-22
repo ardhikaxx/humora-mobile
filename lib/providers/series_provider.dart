@@ -90,6 +90,18 @@ class SeriesProvider extends ChangeNotifier {
             .toList();
 
         _seriesList = parsed;
+
+        // Synchronize initial liked state for all series and episodes
+        for (final s in _seriesList) {
+          if (s.isLiked) {
+            _likedSeries.add(s.id);
+          }
+          for (final ep in s.episodes) {
+            if (ep.isLiked) {
+              _likedEpisodes.add(ep.id);
+            }
+          }
+        }
       }
     } catch (e) {
       _errorMessage = 'Gagal memuat series: ${e.toString()}';
@@ -134,6 +146,12 @@ class SeriesProvider extends ChangeNotifier {
           _likedSeries.add(detail.id);
         }
 
+        for (final ep in detail.episodes) {
+          if (ep.isLiked) {
+            _likedEpisodes.add(ep.id);
+          }
+        }
+
         notifyListeners();
         return detail;
       }
@@ -153,70 +171,170 @@ class SeriesProvider extends ChangeNotifier {
 
   bool isEpisodeLiked(String episodeId) => _likedEpisodes.contains(episodeId);
 
-  Future<void> toggleEpisodeLike(String episodeId) async {
+  Future<bool> toggleEpisodeLike(String episodeId) async {
     final epIdInt = int.tryParse(episodeId);
 
-    final isLikedNow = !_likedEpisodes.contains(episodeId);
-    if (isLikedNow) {
+    final wasLiked = _likedEpisodes.contains(episodeId);
+    final optimisticLiked = !wasLiked;
+
+    if (optimisticLiked) {
       _likedEpisodes.add(episodeId);
     } else {
       _likedEpisodes.remove(episodeId);
     }
 
     // Optimistically update episode in series list
+    _updateEpisodeLikeInState(episodeId, optimisticLiked);
+    notifyListeners();
+
+    if (epIdInt != null) {
+      try {
+        final res = await _api.toggleEpisodeLike(epIdInt);
+        if (res.data != null && res.data['data'] is Map<String, dynamic>) {
+          final data = res.data['data'] as Map<String, dynamic>;
+          final serverIsLiked = data['is_liked'] == true;
+          final serverLikesCount = int.tryParse(data['likes_count'].toString()) ?? 0;
+
+          if (serverIsLiked) {
+            _likedEpisodes.add(episodeId);
+          } else {
+            _likedEpisodes.remove(episodeId);
+          }
+
+          _applyServerEpisodeLike(episodeId, serverIsLiked, serverLikesCount);
+          notifyListeners();
+          return true;
+        }
+      } catch (e) {
+        // Rollback state on error
+        if (wasLiked) {
+          _likedEpisodes.add(episodeId);
+        } else {
+          _likedEpisodes.remove(episodeId);
+        }
+        _updateEpisodeLikeInState(episodeId, wasLiked);
+        notifyListeners();
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  void _updateEpisodeLikeInState(String episodeId, bool isLiked) {
     for (int i = 0; i < _seriesList.length; i++) {
       final s = _seriesList[i];
       final epIdx = s.episodes.indexWhere((e) => e.id == episodeId);
       if (epIdx != -1) {
         final ep = s.episodes[epIdx];
-        final newCount = isLikedNow ? ep.likesCount + 1 : (ep.likesCount > 0 ? ep.likesCount - 1 : 0);
+        final newCount = isLiked ? ep.likesCount + 1 : (ep.likesCount > 0 ? ep.likesCount - 1 : 0);
         final newLikesStr = newCount > 0
             ? (newCount >= 1000 ? '${(newCount / 1000).toStringAsFixed(1)}k Suka' : '$newCount Suka')
             : '0 Suka';
         final updatedEpList = List<EpisodeModel>.from(s.episodes);
-        updatedEpList[epIdx] = ep.copyWith(likesCount: newCount, likes: newLikesStr);
+        updatedEpList[epIdx] = ep.copyWith(
+          likesCount: newCount,
+          likes: newLikesStr,
+          isLiked: isLiked,
+        );
         _seriesList[i] = s.copyWith(episodes: updatedEpList);
         break;
       }
     }
+  }
 
-    notifyListeners();
+  void _applyServerEpisodeLike(String episodeId, bool isLiked, int count) {
+    final likesStr = count > 0
+        ? (count >= 1000 ? '${(count / 1000).toStringAsFixed(1)}k Suka' : '$count Suka')
+        : '0 Suka';
 
-    if (epIdInt != null) {
-      try {
-        await _api.toggleEpisodeLike(epIdInt);
-      } catch (_) {}
+    for (int i = 0; i < _seriesList.length; i++) {
+      final s = _seriesList[i];
+      final epIdx = s.episodes.indexWhere((e) => e.id == episodeId);
+      if (epIdx != -1) {
+        final ep = s.episodes[epIdx];
+        final updatedEpList = List<EpisodeModel>.from(s.episodes);
+        updatedEpList[epIdx] = ep.copyWith(
+          likesCount: count,
+          likes: likesStr,
+          isLiked: isLiked,
+        );
+        _seriesList[i] = s.copyWith(episodes: updatedEpList);
+        break;
+      }
     }
   }
 
   bool isSeriesLiked(String seriesId) => _likedSeries.contains(seriesId);
 
-  Future<void> toggleSeriesLike(String seriesId) async {
+  Future<bool> toggleSeriesLike(String seriesId) async {
     final sIdInt = int.tryParse(seriesId);
 
-    final isLikedNow = !_likedSeries.contains(seriesId);
-    if (isLikedNow) {
+    final wasLiked = _likedSeries.contains(seriesId);
+    final optimisticLiked = !wasLiked;
+
+    if (optimisticLiked) {
       _likedSeries.add(seriesId);
     } else {
       _likedSeries.remove(seriesId);
     }
 
-    final sIdx = _seriesList.indexWhere((s) => s.id == seriesId || s.slug == seriesId);
-    if (sIdx != -1) {
-      final s = _seriesList[sIdx];
-      final newCount = isLikedNow ? s.likesCount + 1 : (s.likesCount > 0 ? s.likesCount - 1 : 0);
-      final newLikesStr = newCount > 0
-          ? (newCount >= 1000 ? '${(newCount / 1000).toStringAsFixed(1)}k Suka' : '$newCount Suka')
-          : '0 Suka';
-      _seriesList[sIdx] = s.copyWith(likesCount: newCount, likes: newLikesStr, isLiked: isLikedNow);
-    }
-
+    _updateSeriesLikeInState(seriesId, optimisticLiked);
     notifyListeners();
 
     if (sIdInt != null) {
       try {
-        await _api.toggleSeriesLike(sIdInt);
-      } catch (_) {}
+        final res = await _api.toggleSeriesLike(sIdInt);
+        if (res.data != null && res.data['data'] is Map<String, dynamic>) {
+          final data = res.data['data'] as Map<String, dynamic>;
+          final serverIsLiked = data['is_liked'] == true;
+          final serverLikesCount = int.tryParse(data['likes_count'].toString()) ?? 0;
+
+          if (serverIsLiked) {
+            _likedSeries.add(seriesId);
+          } else {
+            _likedSeries.remove(seriesId);
+          }
+
+          _applyServerSeriesLike(seriesId, serverIsLiked, serverLikesCount);
+          notifyListeners();
+          return true;
+        }
+      } catch (e) {
+        if (wasLiked) {
+          _likedSeries.add(seriesId);
+        } else {
+          _likedSeries.remove(seriesId);
+        }
+        _updateSeriesLikeInState(seriesId, wasLiked);
+        notifyListeners();
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  void _updateSeriesLikeInState(String seriesId, bool isLiked) {
+    final sIdx = _seriesList.indexWhere((s) => s.id == seriesId || s.slug == seriesId);
+    if (sIdx != -1) {
+      final s = _seriesList[sIdx];
+      final newCount = isLiked ? s.likesCount + 1 : (s.likesCount > 0 ? s.likesCount - 1 : 0);
+      final newLikesStr = newCount > 0
+          ? (newCount >= 1000 ? '${(newCount / 1000).toStringAsFixed(1)}k Suka' : '$newCount Suka')
+          : '0 Suka';
+      _seriesList[sIdx] = s.copyWith(likesCount: newCount, likes: newLikesStr, isLiked: isLiked);
+    }
+  }
+
+  void _applyServerSeriesLike(String seriesId, bool isLiked, int count) {
+    final sIdx = _seriesList.indexWhere((s) => s.id == seriesId || s.slug == seriesId);
+    if (sIdx != -1) {
+      final s = _seriesList[sIdx];
+      final newLikesStr = count > 0
+          ? (count >= 1000 ? '${(count / 1000).toStringAsFixed(1)}k Suka' : '$count Suka')
+          : '0 Suka';
+      _seriesList[sIdx] = s.copyWith(likesCount: count, likes: newLikesStr, isLiked: isLiked);
     }
   }
 
@@ -230,25 +348,15 @@ class SeriesProvider extends ChangeNotifier {
     }
   }
 
-  EpisodeModel? getEpisode(String seriesId, String episodeId) {
-    final series = getSeriesById(seriesId);
-    if (series == null) return null;
-    try {
-      return series.episodes.firstWhere(
-        (e) => e.id == episodeId || e.episodeNumber.toString() == episodeId,
-      );
-    } catch (_) {
-      return null;
-    }
-  }
-
-  void setSeriesForTesting(List<SeriesModel> series) {
-    _seriesList = series;
+  @visibleForTesting
+  void setSeriesForTesting(List<SeriesModel> list) {
+    _seriesList = list;
     notifyListeners();
   }
 
-  void setIsLoadingForTesting(bool loading) {
-    _isLoading = loading;
+  @visibleForTesting
+  void setIsLoadingForTesting(bool val) {
+    _isLoading = val;
     notifyListeners();
   }
 }

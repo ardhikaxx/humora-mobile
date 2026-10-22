@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/services/vibration_service.dart';
 import '../../data/models/episode_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/series_provider.dart';
@@ -86,26 +87,64 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                     Row(
                       children: [
                         // Likes Pill
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFEE2E2),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(LucideIcons.heart, size: 13, color: Color(0xFFEF4444)),
-                              const SizedBox(width: 5),
-                              Text(
-                                series.likes.contains('Suka') ? series.likes : '${series.likes} Suka',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFFDC2626),
+                        GestureDetector(
+                          onTap: () async {
+                            VibrationService.lightImpact();
+                            final willLike = !seriesProv.isSeriesLiked(series.id);
+                            final success = await seriesProv.toggleSeriesLike(series.id);
+                            if (!context.mounted) return;
+                            if (success) {
+                              ScaffoldMessenger.of(context).clearSnackBars();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    willLike ? 'Series disukai!' : 'Batal menyukai series.',
+                                  ),
+                                  duration: const Duration(seconds: 2),
+                                  behavior: SnackBarBehavior.floating,
                                 ),
+                              );
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: seriesProv.isSeriesLiked(series.id)
+                                  ? const Color(0xFFFEE2E2)
+                                  : AppColors.surface,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: seriesProv.isSeriesLiked(series.id)
+                                    ? const Color(0xFFFCA5A5)
+                                    : AppColors.border,
+                                width: 1.0,
                               ),
-                            ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  LucideIcons.heart,
+                                  size: 13,
+                                  color: seriesProv.isSeriesLiked(series.id)
+                                      ? const Color(0xFFEF4444)
+                                      : AppColors.textSecondary,
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  seriesProv.isSeriesLiked(series.id)
+                                      ? 'Disukai • ${series.likes.contains('Suka') ? series.likes : '${series.likes} Suka'}'
+                                      : (series.likes.contains('Suka') ? series.likes : '${series.likes} Suka'),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: seriesProv.isSeriesLiked(series.id)
+                                        ? const Color(0xFFDC2626)
+                                        : AppColors.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),

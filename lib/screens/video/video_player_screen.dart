@@ -826,9 +826,25 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                 child: Row(
                   children: [
                     GestureDetector(
-                      onTap: () {
+                      onTap: () async {
                         VibrationService.lightImpact();
-                        seriesProv.toggleEpisodeLike(currentEpisode.id);
+                        final willLike = !seriesProv.isEpisodeLiked(currentEpisode.id);
+                        final success = await seriesProv.toggleEpisodeLike(currentEpisode.id);
+                        if (!context.mounted) return;
+                        if (success) {
+                          ScaffoldMessenger.of(context).clearSnackBars();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                willLike
+                                    ? 'Episode disukai! Jumlah suka bertambah.'
+                                    : 'Batal menyukai episode.',
+                              ),
+                              duration: const Duration(seconds: 2),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -850,7 +866,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              isEpLiked ? 'Disukai' : currentEpisode.likes,
+                              isEpLiked ? 'Disukai • ${currentEpisode.likes}' : currentEpisode.likes,
                               style: TextStyle(
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w700,

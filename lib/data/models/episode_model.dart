@@ -17,6 +17,7 @@ class EpisodeModel {
   final int lastPosition;
   final String? streamUrl;
   final String accessType;
+  final bool isLiked;
 
   const EpisodeModel({
     required this.id,
@@ -37,6 +38,7 @@ class EpisodeModel {
     this.lastPosition = 0,
     this.streamUrl,
     this.accessType = 'free',
+    this.isLiked = false,
   });
 
   factory EpisodeModel.fromJson(Map<String, dynamic> json) {
@@ -57,6 +59,7 @@ class EpisodeModel {
     final epLikesStr = epLikesCount > 0
         ? (epLikesCount >= 1000 ? '${(epLikesCount / 1000).toStringAsFixed(1)}k Suka' : '$epLikesCount Suka')
         : '0 Suka';
+    final isLiked = json['is_liked'] == true;
 
     return EpisodeModel(
       id: json['id']?.toString() ?? '',
@@ -85,6 +88,7 @@ class EpisodeModel {
           : 0,
       streamUrl: json['stream_url']?.toString(),
       accessType: json['access_type']?.toString() ?? (isFree ? 'free' : 'premium'),
+      isLiked: isLiked,
     );
   }
 
@@ -107,6 +111,7 @@ class EpisodeModel {
     int? lastPosition,
     String? streamUrl,
     String? accessType,
+    bool? isLiked,
   }) {
     return EpisodeModel(
       id: id ?? this.id,
@@ -127,6 +132,7 @@ class EpisodeModel {
       lastPosition: lastPosition ?? this.lastPosition,
       streamUrl: streamUrl ?? this.streamUrl,
       accessType: accessType ?? this.accessType,
+      isLiked: isLiked ?? this.isLiked,
     );
   }
 }

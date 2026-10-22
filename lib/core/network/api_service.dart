@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'api_config.dart';
@@ -60,6 +61,11 @@ class ApiService {
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           options.baseUrl = ApiConfig.baseUrl;
+
+          // Always attach persistent session/device ID for guest & member analytics/likes
+          final sessionId = await getSessionId();
+          options.headers['X-Session-ID'] = sessionId;
+
           final token = await getToken();
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
@@ -92,6 +98,29 @@ class ApiService {
   Future<void> clearToken() async {
     _cachedToken = null;
     await _storage.delete(key: _tokenKey);
+  }
+
+  // --- DEVICE & GUEST SESSION MANAGEMENT ---
+  static const String _sessionKey = 'humora_device_session_id';
+  String? _cachedSessionId;
+
+  Future<String> getSessionId() async {
+    if (_cachedSessionId != null && _cachedSessionId!.isNotEmpty) {
+      return _cachedSessionId!;
+    }
+    try {
+      _cachedSessionId = await _storage.read(key: _sessionKey);
+    } catch (_) {}
+
+    if (_cachedSessionId == null || _cachedSessionId!.isEmpty) {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final rand = Random().nextInt(0x7FFFFFFF);
+      _cachedSessionId = 'device_${now}_$rand';
+      try {
+        await _storage.write(key: _sessionKey, value: _cachedSessionId!);
+      } catch (_) {}
+    }
+    return _cachedSessionId!;
   }
 
   // --- AUTHENTICATION ---
