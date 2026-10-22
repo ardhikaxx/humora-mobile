@@ -44,7 +44,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     with WidgetsBindingObserver, RouteAware {
   late int _currentEpisodeNumber;
   VideoPlayerController? _videoController;
-  bool _isControllerInitializing = false;
+  bool _isControllerInitializing = true;
   bool _hasVideoError = false;
   bool _isPlaying = false;
   bool _showControls = true;
@@ -66,6 +66,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _currentEpisodeNumber = widget.initialEpisodeNumber;
+    _isControllerInitializing = true;
+    _showControls = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted || _isDisposed || _isPopping) return;
       final seriesProv = context.read<SeriesProvider>();
@@ -191,10 +193,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   /// Schedule auto-hiding controls after ~2 seconds of playback
   void _scheduleHideControls() {
     _hideControlsTimer?.cancel();
-    if (_isPlaying && !_hasVideoError && !_isControllerInitializing && !_isPopping && !_isDisposed) {
+    if (!_hasVideoError && !_isControllerInitializing && !_isPopping && !_isDisposed) {
       _hideControlsTimer = Timer(const Duration(milliseconds: 2000), () {
-        if (mounted && _isPlaying && !_isPopping && !_isDisposed) {
-          _safeSetState(() => _showControls = false);
+        if (mounted && !_isPopping && !_isDisposed) {
+          if (_videoController != null && _videoController!.value.isPlaying) {
+            _safeSetState(() => _showControls = false);
+          }
         }
       });
     }
@@ -207,7 +211,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _showControls = !_showControls;
     });
     if (_showControls) {
-      if (_isPlaying) {
+      if (_isPlaying || (_videoController != null && _videoController!.value.isPlaying)) {
         _scheduleHideControls();
       }
     } else {
@@ -229,6 +233,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _totalDuration = dur;
       _currentProgress = (pos.inMilliseconds / dur.inMilliseconds).clamp(0.0, 1.0);
       _isPlaying = val.isPlaying;
+
+      // When video is actively playing and controls are visible, ensure the 2s auto-hide timer is active
+      if (_isPlaying && _showControls && (_hideControlsTimer == null || !_hideControlsTimer!.isActive)) {
+        _scheduleHideControls();
+      }
 
       _checkVideoCompletion(val, pos, dur);
 
@@ -399,7 +408,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       }
 
       newController.addListener(_onVideoControllerUpdate);
-      newController.play();
+      await newController.play();
       WakelockService.enable();
 
       _safeSetState(() {
@@ -534,6 +543,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _currentProgress = 0.0;
       _currentPosition = Duration.zero;
       _showControls = true;
+      _isControllerInitializing = true;
     });
 
     _initializeVideoPlayer();
@@ -578,7 +588,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _hasTriggeredCompletion = false;
     }
     _videoController!.seekTo(clamped);
-    if (_isPlaying) {
+    if (_isPlaying || (_videoController != null && _videoController!.value.isPlaying)) {
       _scheduleHideControls();
     }
   }
