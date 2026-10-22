@@ -3,15 +3,22 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_assets.dart';
+import '../../data/models/subscription_plan_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
+import '../subscription/checkout_screen.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final String? initialEmail;
+  final SubscriptionPlanModel? redirectToCheckoutPlan;
 
-  const LoginScreen({super.key, this.initialEmail});
+  const LoginScreen({
+    super.key,
+    this.initialEmail,
+    this.redirectToCheckoutPlan,
+  });
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -75,7 +82,15 @@ class _LoginScreenState extends State<LoginScreen> {
           duration: Duration(seconds: 2),
         ),
       );
-      Navigator.of(context).pop();
+      if (widget.redirectToCheckoutPlan != null) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => CheckoutScreen(plan: widget.redirectToCheckoutPlan!),
+          ),
+        );
+      } else {
+        Navigator.of(context).pop();
+      }
     } else {
       final err = context.read<AuthProvider>().errorMessage ??
           'Gagal masuk. Periksa kembali email dan kata sandi Anda.';
@@ -180,6 +195,51 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+
+              // Redirect to Checkout Plan Banner
+              if (widget.redirectToCheckoutPlan != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFFDE68A), width: 1.2),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(LucideIcons.shoppingBag, size: 20, color: Color(0xFFD97706)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Langkah Menuju Checkout',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF92400E),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Masuk untuk melanjutkan pembelian ${widget.redirectToCheckoutPlan!.name} (${widget.redirectToCheckoutPlan!.formattedPrice}).',
+                                style: const TextStyle(
+                                  fontSize: 11.5,
+                                  color: Color(0xFFB45309),
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
               // Form Container Card
               Container(
@@ -511,7 +571,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     onTap: () {
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(
-                          builder: (_) => const RegisterScreen(),
+                          builder: (_) => RegisterScreen(
+                            redirectToCheckoutPlan: widget.redirectToCheckoutPlan,
+                          ),
                         ),
                       );
                     },

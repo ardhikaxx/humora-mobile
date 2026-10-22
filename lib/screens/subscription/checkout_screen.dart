@@ -132,7 +132,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             textColor: AppColors.primaryYellow,
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                MaterialPageRoute(
+                  builder: (_) => LoginScreen(
+                    redirectToCheckoutPlan: widget.plan,
+                  ),
+                ),
               );
             },
           ),

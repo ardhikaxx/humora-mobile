@@ -35,6 +35,7 @@ import 'package:humora_mobile/core/services/showcase_service.dart';
 import 'package:humora_mobile/core/services/floating_service.dart';
 import 'package:humora_mobile/providers/connectivity_provider.dart';
 import 'package:humora_mobile/screens/subscription/checkout_screen.dart';
+import 'package:humora_mobile/screens/subscription/subscription_plans_screen.dart';
 import 'package:humora_mobile/data/models/payment_info_model.dart';
 import 'package:humora_mobile/data/models/subscription_plan_model.dart';
 
@@ -58,17 +59,29 @@ class MockHomeSeriesProvider extends SeriesProvider {
 
 class MockSubscriptionProvider extends SubscriptionProvider {
   PaymentInfoModel? _mockInfo;
+  List<SubscriptionPlanModel>? _mockPlans;
 
   @override
   PaymentInfoModel? get paymentInfo => _mockInfo;
+
+  @override
+  List<SubscriptionPlanModel> get plans => _mockPlans ?? super.plans;
 
   void setMockPaymentInfo(PaymentInfoModel info) {
     _mockInfo = info;
     notifyListeners();
   }
 
+  void setMockPlans(List<SubscriptionPlanModel> plans) {
+    _mockPlans = plans;
+    notifyListeners();
+  }
+
   @override
   Future<void> fetchPaymentInfo() async {}
+
+  @override
+  Future<void> fetchPlans() async {}
 }
 
 void main() {
@@ -750,6 +763,50 @@ void main() {
     // Verify BRI account details appear
     expect(find.text('0011-2233-4455'), findsOneWidget);
     expect(find.text('Atas Nama: HUMORA MEDIA'), findsOneWidget);
+  });
+
+  testWidgets('Guest clicking Lanjutkan Pembayaran in SubscriptionPlansScreen redirects to LoginScreen with plan banner', (tester) async {
+    const testPlan = SubscriptionPlanModel(
+      id: '1',
+      name: 'Akses Mingguan 15 Video',
+      durationDays: 7,
+      durationText: '7 Hari',
+      description: 'Akses 15 video',
+      originalPrice: 15000,
+      price: 15000,
+      formattedPrice: 'Rp15.000',
+      badgeText: 'Hemat',
+      benefits: ['15 Video Baru', 'Masa aktif 7 hari'],
+    );
+
+    final subProvider = MockSubscriptionProvider();
+    subProvider.setMockPlans([testPlan]);
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<AuthProvider>(create: (_) => AuthProvider()),
+          ChangeNotifierProvider<SubscriptionProvider>.value(value: subProvider),
+        ],
+        child: const MaterialApp(
+          home: SubscriptionPlansScreen(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Verify Lanjutkan Pembayaran button is rendered
+    expect(find.text('Lanjutkan Pembayaran'), findsOneWidget);
+
+    // Tap Lanjutkan Pembayaran as guest
+    await tester.tap(find.text('Lanjutkan Pembayaran'));
+    await tester.pumpAndSettle();
+
+    // Verify redirected to LoginScreen with Step to Checkout banner
+    expect(find.text('Masuk Akun'), findsOneWidget);
+    expect(find.text('Langkah Menuju Checkout'), findsOneWidget);
+    expect(find.textContaining('Akses Mingguan 15 Video'), findsWidgets);
   });
 }
 

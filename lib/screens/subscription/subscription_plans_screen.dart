@@ -9,6 +9,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
 import '../../widgets/humora_empty_state.dart';
+import '../auth/login_screen.dart';
 import 'checkout_screen.dart';
 
 class SubscriptionPlansScreen extends StatefulWidget {
@@ -513,6 +514,28 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                   ? null
                   : () {
                       VibrationService.mediumImpact();
+                      final auth = context.read<AuthProvider>();
+                      if (auth.isGuest) {
+                        ScaffoldMessenger.of(context).clearSnackBars();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Silakan masuk atau daftar akun terlebih dahulu untuk melanjutkan pembayaran paket ${selectedPlan.name}.',
+                            ),
+                            backgroundColor: AppColors.primaryDark,
+                            duration: const Duration(seconds: 3),
+                          ),
+                        );
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => LoginScreen(
+                              redirectToCheckoutPlan: selectedPlan,
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) => CheckoutScreen(plan: selectedPlan),
