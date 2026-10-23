@@ -33,6 +33,9 @@ class BankAccountModel {
 class QrisModel {
   final String code;
   final bool isConfigured;
+  final bool isEnabled;
+  final bool hasDynamicSupport;
+  final String? rawPayload;
   final String? qrisImageUrl;
   final String accountName;
   final String instructions;
@@ -40,6 +43,9 @@ class QrisModel {
   const QrisModel({
     this.code = 'qris',
     this.isConfigured = false,
+    this.isEnabled = true,
+    this.hasDynamicSupport = false,
+    this.rawPayload,
     this.qrisImageUrl,
     required this.accountName,
     required this.instructions,
@@ -49,8 +55,11 @@ class QrisModel {
     return QrisModel(
       code: json['code']?.toString() ?? 'qris',
       isConfigured: json['is_configured'] == true,
+      isEnabled: json['is_enabled'] != false,
+      hasDynamicSupport: json['has_dynamic_support'] == true,
+      rawPayload: json['raw_payload']?.toString(),
       qrisImageUrl: json['qris_image_url']?.toString(),
-      accountName: json['account_name']?.toString() ?? 'HUMORA MEDIA KREATIF',
+      accountName: json['account_name']?.toString() ?? 'PT HUMORA MEDIA KREATIF',
       instructions: json['instructions']?.toString() ?? '',
     );
   }

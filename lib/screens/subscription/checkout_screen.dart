@@ -3,10 +3,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../../core/network/api_config.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/qris_helper.dart';
 import '../../data/models/payment_info_model.dart';
 import '../../data/models/subscription_plan_model.dart';
 import '../../providers/auth_provider.dart';
@@ -365,9 +368,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget _buildMethodSelector(dynamic paymentInfo) {
     final List<Widget> buttons = [];
     final banks = paymentInfo?.bankAccounts ?? <BankAccountModel>[];
+    final bool qrisEnabled = paymentInfo?.qris?.isEnabled ?? true;
+    final bool isQrisConfigured = paymentInfo?.qris?.isConfigured ?? false;
 
-    // If no method selected yet, or current method not in banks and not qris, select first
-    if (_selectedMethod != 'qris' && !banks.any((b) => b.code == _selectedMethod)) {
+    // If current selected method is qris but qris is disabled, fallback to first bank
+    if (_selectedMethod == 'qris' && !qrisEnabled) {
+      if (banks.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) setState(() => _selectedMethod = banks.first.code);
+        });
+      }
+    } else if (_selectedMethod != 'qris' && !banks.any((b) => b.code == _selectedMethod)) {
       if (banks.isNotEmpty) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted && _selectedMethod != banks.first.code) {
@@ -405,13 +416,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       );
     }
 
-    // QRIS is always available ("untuk qris tetap")
-    buttons.add(
-      _buildMethodButton(
-        code: 'qris',
-        label: 'QRIS Resmi',
-      ),
-    );
+    // Add QRIS button ONLY if enabled and configured by Admin in settings
+    if (qrisEnabled && isQrisConfigured) {
+      buttons.add(
+        _buildMethodButton(
+          code: 'qris',
+          label: 'QRIS Resmi',
+        ),
+      );
+    }
 
     if (buttons.length <= 3) {
       return Row(
@@ -614,7 +627,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Widget _buildPaymentDetailsCard(dynamic paymentInfo) {
     if (_selectedMethod == 'qris') {
-      final qrisUrl = paymentInfo?.qris?.qrisImageUrl;
+      final qris = paymentInfo?.qris;
+      final qrisUrl = qris?.qrisImageUrl;
+      final rawPayload = qris?.rawPayload;
+      final bool hasRawPayload = rawPayload != null && rawPayload.trim().isNotEmpty;
+
+      // Generate dynamic QRIS payload containing the exact package price
+      final String? dynamicPayload = hasRawPayload
+          ? QrisHelper.makeDynamic(rawPayload, widget.plan.price)
+          : null;
+
+      final formattedPrice = NumberFormat('#,###', 'id_ID').format(widget.plan.price);
 
       return Container(
         width: double.infinity,
@@ -626,36 +649,111 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ),
         child: Column(
           children: [
-            const Text(
-              'SCAN QRIS HUMORA RESMI',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textMuted,
-                letterSpacing: 0.5,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.primaryPurple.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.primaryPurple.withOpacity(0.2)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(LucideIcons.sparkles, size: 12, color: AppColors.primaryPurple),
+                  const SizedBox(width: 5),
+                  Text(
+                    hasRawPayload ? 'QRIS DINAMIS OTOMATIS' : 'SCAN QRIS RESMI',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primaryPurple,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 12),
             Container(
-              width: 180,
-              height: 180,
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.border),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              child: qrisUrl != null
-                  ? HumoraImage(
-                      imagePathOrUrl: qrisUrl,
-                      fit: BoxFit.contain,
-                    )
-                  : const Center(
-                      child: Icon(
-                        LucideIcons.qrCode,
-                        size: 90,
-                        color: AppColors.primaryPurple,
+              child: dynamicPayload != null
+                  ? QrImageView(
+                      data: dynamicPayload,
+                      version: QrVersions.auto,
+                      size: 190.0,
+                      backgroundColor: Colors.white,
+                      eyeStyle: const QrEyeStyle(
+                        eyeShape: QrEyeShape.square,
+                        color: Color(0xFF1E1E2D),
                       ),
+                      dataModuleStyle: const QrDataModuleStyle(
+                        dataModuleShape: QrDataModuleShape.square,
+                        color: Color(0xFF1E1E2D),
+                      ),
+                    )
+                  : (qrisUrl != null
+                      ? SizedBox(
+                          width: 190,
+                          height: 190,
+                          child: HumoraImage(
+                            imagePathOrUrl: qrisUrl,
+                            fit: BoxFit.contain,
+                          ),
+                        )
+                      : const SizedBox(
+                          width: 190,
+                          height: 190,
+                          child: Center(
+                            child: Icon(
+                              LucideIcons.qrCode,
+                              size: 90,
+                              color: AppColors.primaryPurple,
+                            ),
+                          ),
+                        )),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withOpacity(0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(LucideIcons.checkCircle2, size: 14, color: Color(0xFF10B981)),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Nominal Pas: Rp $formattedPrice',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF059669),
                     ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              hasRawPayload
+                  ? 'Saat di-scan di m-Banking atau e-Wallet, nominal Rp $formattedPrice sudah otomatis terisi.'
+                  : 'Pastikan memasukkan nominal transfer pas: Rp $formattedPrice',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 10),
             Text(
@@ -668,9 +766,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              paymentInfo?.qris?.instructions ?? 'Dapat dipindai dari m-BCA, Livin by Mandiri, GoPay, OVO, ShopeePay, DANA.',
+              paymentInfo?.qris?.instructions ??
+                  'Dapat dipindai dari m-BCA, Livin by Mandiri, BRImo, GoPay, OVO, ShopeePay, DANA.',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+              style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
             ),
           ],
         ),
