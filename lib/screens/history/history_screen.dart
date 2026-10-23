@@ -6,6 +6,8 @@ import '../../providers/history_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
 import '../../widgets/humora_image.dart';
 import '../../widgets/humora_empty_state.dart';
+import '../../widgets/humora_toast.dart';
+import '../../core/services/vibration_service.dart';
 import '../video/video_player_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -331,7 +333,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       ),
                       GestureDetector(
                         onTap: () {
+                          VibrationService.lightImpact();
                           historyProv.removeHistory(item.id);
+                          HumoraToast.showInfo(
+                            context,
+                            '"${item.seriesTitle}" dihapus dari riwayat.',
+                            title: 'Riwayat Diperbarui',
+                          );
                         },
                         child: const Icon(
                           LucideIcons.trash2,

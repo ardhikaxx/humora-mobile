@@ -24,6 +24,7 @@ class SeriesProvider extends ChangeNotifier {
   String _selectedCategory = 'Semua';
   final Set<String> _likedEpisodes = {};
   final Set<String> _likedSeries = {};
+  final Set<String> _watchlistSeries = {};
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -366,6 +367,21 @@ class SeriesProvider extends ChangeNotifier {
           : '0 Suka';
       _seriesList[sIdx] = s.copyWith(likesCount: newCount, likes: newLikesStr, isLiked: isLiked);
     }
+  }
+
+  Set<String> get watchlistSeries => _watchlistSeries;
+
+  bool isSeriesInWatchlist(String seriesId) => _watchlistSeries.contains(seriesId);
+
+  bool toggleWatchlist(String seriesId) {
+    final wasInWatchlist = _watchlistSeries.contains(seriesId);
+    if (wasInWatchlist) {
+      _watchlistSeries.remove(seriesId);
+    } else {
+      _watchlistSeries.add(seriesId);
+    }
+    notifyListeners();
+    return !wasInWatchlist;
   }
 
   void _applyServerSeriesLike(String seriesId, bool isLiked, int count) {

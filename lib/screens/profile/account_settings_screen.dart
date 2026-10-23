@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
+import '../../widgets/humora_toast.dart';
 import '../auth/login_screen.dart';
 
 class AccountSettingsScreen extends StatelessWidget {
@@ -227,12 +228,12 @@ class AccountSettingsScreen extends StatelessWidget {
                           ),
                           GestureDetector(
                             onTap: () {
+                              final freedMb = settings.cacheSizeMb.toStringAsFixed(1);
                               settings.clearCache();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Cache aplikasi berhasil dibersihkan!'),
-                                  backgroundColor: AppColors.primaryDark,
-                                ),
+                              HumoraToast.showSuccess(
+                                context,
+                                'Cache aplikasi sebesar $freedMb MB berhasil dibersihkan.',
+                                title: 'Penyimpanan Dioptimalkan',
                               );
                             },
                             child: Container(
@@ -348,11 +349,10 @@ class AccountSettingsScreen extends StatelessWidget {
                   height: 52,
                   child: ElevatedButton(
                     onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Pengaturan berhasil disimpan!'),
-                          backgroundColor: AppColors.primaryDark,
-                        ),
+                      HumoraToast.showSuccess(
+                        context,
+                        'Pengaturan preferensi akun Anda berhasil disimpan.',
+                        title: 'Pengaturan Tersimpan',
                       );
                       Navigator.of(context).pop();
                     },

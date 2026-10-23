@@ -22,6 +22,7 @@ import '../../widgets/humora_image.dart';
 import '../../widgets/humora_empty_state.dart';
 import '../../widgets/paywall_modal.dart';
 import '../../widgets/series_poster_card.dart';
+import '../../widgets/humora_toast.dart';
 import 'series_detail_screen.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
@@ -968,17 +969,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                         if (!context.mounted) return;
                         if (success) {
                           _triggerLikeSync();
-                          ScaffoldMessenger.of(context).clearSnackBars();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                willLike
-                                    ? 'Episode disukai! Jumlah suka bertambah.'
-                                    : 'Batal menyukai episode.',
-                              ),
-                              duration: const Duration(seconds: 2),
-                              behavior: SnackBarBehavior.floating,
-                            ),
+                          HumoraToast.showLike(
+                            context,
+                            isLiked: willLike,
+                            targetTitle: currentEpisode.title,
+                            isSeries: false,
                           );
                         }
                       },
@@ -1013,10 +1008,61 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    const Text(
-                      'Ketuk untuk menyukai video ini',
-                      style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                    const SizedBox(width: 8),
+
+                    // Watchlist Pill
+                    GestureDetector(
+                      onTap: () {
+                        VibrationService.lightImpact();
+                        final isAdded = seriesProv.toggleWatchlist(widget.seriesId);
+                        HumoraToast.showWatchlist(
+                          context,
+                          isAdded: isAdded,
+                          seriesTitle: currentEpisode.title,
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: seriesProv.isSeriesInWatchlist(widget.seriesId)
+                              ? AppColors.yellowSoft
+                              : AppColors.surface,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: seriesProv.isSeriesInWatchlist(widget.seriesId)
+                                ? AppColors.primaryYellowDark
+                                : AppColors.border,
+                            width: 1.2,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              seriesProv.isSeriesInWatchlist(widget.seriesId)
+                                  ? LucideIcons.bookmarkCheck
+                                  : LucideIcons.bookmark,
+                              size: 15,
+                              color: seriesProv.isSeriesInWatchlist(widget.seriesId)
+                                  ? AppColors.primaryYellowDark
+                                  : AppColors.textSecondary,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              seriesProv.isSeriesInWatchlist(widget.seriesId)
+                                  ? 'Tersimpan'
+                                  : 'Daftar Tonton',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                                color: seriesProv.isSeriesInWatchlist(widget.seriesId)
+                                    ? AppColors.primaryDark
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),

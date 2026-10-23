@@ -9,6 +9,16 @@ Format pencatatan berpedoman pada [Keep a Changelog](https://keepachangelog.com/
 ## [1.3.0] - 2026-10-23
 
 ### Ditambahkan (Added)
+- **Notifikasi Mengambang Halus di Sisi Atas Layar (`delightful_toast: ^1.1.0`)**:
+  - Implementasi service terpadu [`HumoraToast`](file:///D:/Projek%20Flutter/humora_mobile/lib/widgets/humora_toast.dart) dengan penempatan melayang elegan di bagian atas layar (*top position*), menghilangkan gangguan terhalangnya bilah navigasi bawah (*bottom navigation bar*).
+  - Tipe konfirmasi khusus:
+    - **Daftar Tonton (Watchlist)**: Notifikasi instan saat serial ditambahkan atau dihapus dari Daftar Tonton (`HumoraToast.showWatchlist`).
+    - **Apresiasi Suka (Likes)**: Notifikasi ramah saat serial maupun episode disukai atau batal disukai (`HumoraToast.showLike`).
+    - **Penyimpanan & Pengaturan**: Notifikasi pembersihan cache aplikasi dan pembaruan profil pengguna (`HumoraToast.showSuccess`).
+  - Fitur gestur usap (*swipe-to-dismiss*), auto-dismiss halus, serta kartu berbayang modern beraksen palet warna HUMORA.
+- **Fitur Daftar Tonton (Watchlist)**:
+  - Tombol aksi simpan tontonan pada halaman detail serial ([`SeriesDetailScreen`](file:///D:/Projek%20Flutter/humora_mobile/lib/screens/video/series_detail_screen.dart)) dan pemutar video ([`VideoPlayerScreen`](file:///D:/Projek%20Flutter/humora_mobile/lib/screens/video/video_player_screen.dart)).
+  - Manajemen state lokal reaktif pada [`SeriesProvider`](file:///D:/Projek%20Flutter/humora_mobile/lib/providers/series_provider.dart).
 - **Tarik Layar untuk Muat Ulang Interaktif Maskot "Si Humo" (`custom_refresh_indicator: ^4.0.2`)**:
   - Komponen `HumoraMascotRefreshIndicator` pada Beranda (`HomeScreen`) menggantikan animasi putaran standar.
   - Menampilkan animasi maskot Si Humo (`logo-humora-rounded.png`) yang mengintip ceria dengan rotasi kemiringan dinamis saat ditarik, melompat/bouncing gembira saat proses refresh berlangsung, serta umpan balik getaran haptic (*haptic feedback*) saat status *armed* dan *complete*.

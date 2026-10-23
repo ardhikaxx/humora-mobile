@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
+import '../../widgets/humora_toast.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -44,11 +45,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       gender: _selectedGender,
     );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Perubahan profil berhasil disimpan!'),
-        backgroundColor: AppColors.primaryDark,
-      ),
+    HumoraToast.showSuccess(
+      context,
+      'Perubahan profil Anda berhasil disimpan.',
+      title: 'Profil Tersimpan',
     );
 
     Navigator.of(context).pop();
