@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'package:humora_mobile/data/models/series_model.dart';
 import 'package:humora_mobile/data/models/episode_model.dart';
 import 'package:humora_mobile/providers/auth_provider.dart';
@@ -16,6 +17,16 @@ import 'package:humora_mobile/core/services/vibration_service.dart';
 import 'package:humora_mobile/core/services/showcase_service.dart';
 
 class TestSearchSeriesProvider extends SeriesProvider {
+  bool _mockLoading = false;
+
+  @override
+  bool get isLoading => _mockLoading;
+
+  void setMockLoading(bool value) {
+    _mockLoading = value;
+    notifyListeners();
+  }
+
   @override
   Future<void> fetchSeries() async {}
 
@@ -214,5 +225,19 @@ void main() {
 
     // Returns to default state
     expect(find.text('Koleksi Video Pilihan'), findsOneWidget);
+  });
+
+  testWidgets('SearchScreen displays Skeletonizer when isLoading is true and seriesList is empty',
+      (tester) async {
+    final seriesProv = TestSearchSeriesProvider();
+    seriesProv.setSeriesForTesting([]);
+    seriesProv.setMockLoading(true);
+
+    await tester.pumpWidget(createSearchScreen(seriesProv));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Verify Skeletonizer is rendered
+    expect(find.byWidgetPredicate((w) => w is Skeletonizer), findsWidgets);
+    expect(find.text('Katalog Lengkap'), findsOneWidget);
   });
 }

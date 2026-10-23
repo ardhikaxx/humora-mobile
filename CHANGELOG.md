@@ -9,6 +9,11 @@ Format pencatatan berpedoman pada [Keep a Changelog](https://keepachangelog.com/
 ## [1.3.0] - 2026-10-23
 
 ### Ditambahkan (Added)
+- **Animasi Kerangka Shimmer Halaman Pencarian (`skeletonizer: ^3.0.0`)**:
+  - Implementasi animasi kerangka memuat (*loading shimmer skeleton*) pada halaman Pencarian ([`SearchScreen`](file:///D:/Projek%20Flutter/humora_mobile/lib/screens/search/search_screen.dart)), selaras dengan desain Beranda.
+  - Menampilkan shimmer bertingkat pada kartu horizontal Katalog Lengkap dan susunan kartu video Bento Grid (rasio 16:9), menggunakan palet warna shimmer lavender khas HUMORA (`baseColor: #EADBFA`, `highlightColor: #FBF9FD`).
+  - Mencegah kedipan tampilan kosong (*empty state flash*) saat data video maupun hasil pencarian sedang diambil.
+  - Integrasi tarikan muat ulang maskot ceria [`HumoraMascotRefreshIndicator`](file:///D:/Projek%20Flutter/humora_mobile/lib/widgets/humora_mascot_refresh_indicator.dart) pada halaman pencarian.
 - **Notifikasi Mengambang Halus di Sisi Atas Layar (`delightful_toast: ^1.1.0`)**:
   - Implementasi service terpadu [`HumoraToast`](file:///D:/Projek%20Flutter/humora_mobile/lib/widgets/humora_toast.dart) dengan penempatan melayang elegan di bagian atas layar (*top position*), menghilangkan gangguan terhalangnya bilah navigasi bawah (*bottom navigation bar*).
   - Tipe konfirmasi khusus:

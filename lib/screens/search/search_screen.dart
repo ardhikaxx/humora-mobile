@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/series_model.dart';
 import '../../data/models/episode_model.dart';
@@ -9,6 +10,7 @@ import '../../providers/series_provider.dart';
 import '../../widgets/series_poster_card.dart';
 import '../../widgets/humora_image.dart';
 import '../../widgets/humora_empty_state.dart';
+import '../../widgets/humora_mascot_refresh_indicator.dart';
 import '../../widgets/paywall_modal.dart';
 import '../video/series_detail_screen.dart';
 import '../video/video_player_screen.dart';
@@ -164,8 +166,7 @@ class _SearchScreenState extends State<SearchScreen> {
             const SizedBox(height: 12),
 
             Expanded(
-              child: RefreshIndicator(
-                color: AppColors.primaryYellow,
+              child: HumoraMascotRefreshIndicator(
                 onRefresh: () async {
                   await Future.wait([
                     seriesProv.fetchSeries(),
@@ -456,8 +457,10 @@ class _SearchScreenState extends State<SearchScreen> {
                         ],
                         const SizedBox(height: 14),
 
-                        // Hasil pencarian: kosong vs list bento
-                        if (matchingVideos.isEmpty)
+                        // Hasil pencarian: loading vs kosong vs list bento
+                        if (seriesProv.isLoading && matchingVideos.isEmpty)
+                          _buildBentoSkeleton()
+                        else if (matchingVideos.isEmpty)
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                             child: HumoraEmptyState(
@@ -832,19 +835,77 @@ class _SearchScreenState extends State<SearchScreen> {
   // SKELETON LOADERS
   // ==========================================
   Widget _buildKatalogSkeleton() {
-    return SizedBox(
-      height: 145,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        scrollDirection: Axis.horizontal,
-        itemCount: 4,
-        separatorBuilder: (_, _) => const SizedBox(width: 12),
-        itemBuilder: (_, _) => Container(
-          width: 230,
-          height: 120,
-          decoration: BoxDecoration(
-            color: AppColors.surfaceVariant,
-            borderRadius: BorderRadius.circular(18),
+    return Skeletonizer(
+      enabled: true,
+      effect: const ShimmerEffect(
+        baseColor: Color(0xFFEADBFA),
+        highlightColor: Color(0xFFFBF9FD),
+        duration: Duration(milliseconds: 1200),
+      ),
+      child: SizedBox(
+        height: 145,
+        child: ListView.separated(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          scrollDirection: Axis.horizontal,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: 4,
+          separatorBuilder: (_, _) => const SizedBox(width: 12),
+          itemBuilder: (_, _) => Container(
+            width: 230,
+            height: 120,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppColors.border, width: 1),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 80,
+                  height: 96,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceVariant,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: 70,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        width: 52,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -852,48 +913,170 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildBentoSkeleton() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          AspectRatio(
-            aspectRatio: 16 / 9,
-            child: Container(
+    return Skeletonizer(
+      enabled: true,
+      effect: const ShimmerEffect(
+        baseColor: Color(0xFFEADBFA),
+        highlightColor: Color(0xFFFBF9FD),
+        duration: Duration(milliseconds: 1200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          children: [
+            // Big Hero Video Card (16:9)
+            Container(
               decoration: BoxDecoration(
-                color: AppColors.surfaceVariant,
-                borderRadius: BorderRadius.circular(18),
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.border, width: 1),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: AppColors.surfaceVariant,
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(19)),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 220,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          width: 140,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: AspectRatio(
-                  aspectRatio: 16 / 9,
+            const SizedBox(height: 14),
+
+            // Two-column Bento Grid (16:9 each)
+            Row(
+              children: [
+                Expanded(
                   child: Container(
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceVariant,
-                      borderRadius: BorderRadius.circular(18),
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.border, width: 1),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              color: AppColors.surfaceVariant,
+                              borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 90,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceVariant,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Container(
+                                width: 50,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceVariant,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: AspectRatio(
-                  aspectRatio: 16 / 9,
+                const SizedBox(width: 12),
+                Expanded(
                   child: Container(
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceVariant,
-                      borderRadius: BorderRadius.circular(18),
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.border, width: 1),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              color: AppColors.surfaceVariant,
+                              borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 90,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceVariant,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Container(
+                                width: 50,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceVariant,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
