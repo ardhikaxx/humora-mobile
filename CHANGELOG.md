@@ -43,11 +43,8 @@ Format pencatatan berpedoman pada [Keep a Changelog](https://keepachangelog.com/
   - Penyimpanan status selesai melalui `SharedPreferences` agar panduan hanya muncul sekali.
 - **Tipografi Adaptif Anti-Overflow (`auto_size_text: ^3.0.0`)**:
   - Integrasi penyesuaian font otomatis pada kartu poster serial (`SeriesPosterCard`), judul hero card, judul episode, badge durasi, dan kartu paket langganan VIP.
-- **Mode Picture-in-Picture (`floating: ^6.0.0`)**:
-  - Penambahan tombol PiP pada kontrol atas `VideoPlayerScreen` dan konfigurasi `android:supportsPictureInPicture="true"` pada Android Manifest.
-  - Komponen `PiPSwitcher` untuk menampilkan video bersih tanpa tombol kontrol saat berada dalam mode melayang.
 - **Respon Getaran Interaktif (`vibration: ^3.2.1`)**:
-  - Implementasi `VibrationService` yang memberikan sensasi getaran haptic halus (*light impact*) pada tombol Like, Simpan, Play/Pause, PiP toggle, navigasi tab, dan seleksi paket VIP; serta *medium impact* pada perpindahan episode dan pembukaan Paywall.
+  - Implementasi `VibrationService` yang memberikan sensasi getaran haptic halus (*light impact*) pada tombol Like, Simpan, Play/Pause, navigasi tab, dan seleksi paket VIP; serta *medium impact* pada perpindahan episode dan pembukaan Paywall.
 - **Perbaikan Copywriting Lupa Kata Sandi**:
   - Penyesuaian kalimat penjelasan menjadi ramah orang awam: *"Email Anda akan dicocokkan secara otomatis dengan akun HUMORA yang sudah terdaftar."*
 

@@ -33,7 +33,6 @@ Aplikasi ini dilengkapi dengan fitur-fitur mutakhir seperti *haptic feedback* in
 ### 1. 🎬 Pemutar Video Cerdas & Responsif
 * **Pemutaran Vertikal Halus**: Pengalaman menonton serial sketsa yang dioptimalkan untuk rasio layar ponsel (16:9 & 9:16) dengan kontrol gestur sentuh yang responsif.
 * **Layar Tetap Menyala (`wakelock_plus`)**: Layar ponsel otomatis dicegah meredup atau terkunci saat video sedang diputar, dan kembali ke setelan tidur normal saat dijeda atau halaman ditutup.
-* **Mode Picture-in-Picture (`floating`)**: Video dapat mengecil ke sudut layar saat pengguna keluar atau beralih membuka aplikasi lain (seperti membalas chat WhatsApp) tanpa memutus pemutaran.
 
 ### 2. 📳 Interaksi Haptic Feedback (`vibration`)
 * Memberikan respon getaran fisik halus (*haptic feedback*) saat pengguna memberikan tanda Suka (*Like/Hati*), menyimpan ke daftar tontonan (*Bookmark*), mengetuk tombol pemutar, berpindah episode, maupun saat memilih paket langganan VIP.
