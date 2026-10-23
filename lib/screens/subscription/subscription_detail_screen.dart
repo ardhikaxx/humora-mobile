@@ -90,7 +90,7 @@ class _SubscriptionDetailScreenState extends State<SubscriptionDetailScreen> {
                     children: [
                       const SizedBox(height: 12),
 
-                      // 1. Pending Transaction Notification (if awaiting admin verification)
+                      // 1. Pending Transaction Notification (if awaiting verification)
                       _buildPendingBanner(context, sub, trx),
 
                 // 2. Main Subscription Status Card (Real API data)
@@ -177,7 +177,7 @@ class _SubscriptionDetailScreenState extends State<SubscriptionDetailScreen> {
                   ),
                   const SizedBox(height: 3),
                   const Text(
-                    'Bukti transfer kamu sedang diverifikasi oleh admin. Akses VIP akan aktif otomatis setelah disetujui.',
+                    'Bukti transfer kamu sedang diverifikasi. Akses VIP akan aktif otomatis setelah disetujui.',
                     style: TextStyle(
                       fontSize: 11.5,
                       color: Color(0xFF78350F),

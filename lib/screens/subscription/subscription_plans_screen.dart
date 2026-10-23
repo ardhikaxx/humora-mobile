@@ -61,7 +61,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                 child: HumoraEmptyState(
                   icon: LucideIcons.crown,
                   title: 'Paket Belum Tersedia',
-                  subtitle: 'Saat ini belum ada pilihan paket VIP yang aktif. Silakan hubungi admin atau muat ulang halaman.',
+                  subtitle: 'Saat ini belum ada pilihan paket VIP yang aktif. Silakan hubungi pusat bantuan atau muat ulang halaman.',
                   buttonText: 'Muat Ulang Paket',
                   buttonIcon: LucideIcons.rotateCcw,
                   onButtonPressed: () => context.read<SubscriptionProvider>().fetchPlans(),
@@ -135,7 +135,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 20),
                       child: Text(
-                        'Nikmati setiap episode tanpa jeda cerita. Tawa tanpa batas sepuasnya.',
+                        'Nikmati setiap episode tanpa jeda cerita. Tawa segar menghibur sepuasnya.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 13,
@@ -224,7 +224,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                           SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'Pembayaran diproses secara manual melalui transfer bank (BCA/Mandiri) atau QRIS. Setelah mengunggah bukti transfer, admin HUMORA akan memverifikasi dan mengaktifkan VIP.',
+                              'Pembayaran diproses melalui transfer bank atau QRIS resmi. Setelah mengunggah bukti transfer, tim verifikasi HUMORA akan mengaktifkan paket VIP Anda.',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: AppColors.textSecondary,
@@ -576,7 +576,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
               Icon(LucideIcons.shieldCheck, size: 14, color: AppColors.green),
               SizedBox(width: 6),
               Text(
-                'Verifikasi resmi admin HUMORA aman dan terpercaya',
+                'Verifikasi resmi HUMORA aman dan terpercaya',
                 style: TextStyle(
                   fontSize: 11,
                   color: AppColors.textSecondary,

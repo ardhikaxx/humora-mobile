@@ -200,7 +200,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                       title: 'Penggunaan Izin Native Perangkat (Permissions)',
                       content:
                           'Aplikasi HUMORA hanya meminta perizinan native perangkat yang benar-benar esensial saat dibutuhkan:\n\n'
-                          '• Izin Notifikasi (POST_NOTIFICATIONS): Untuk mengirimkan info episode sketsa terbaru, kabar video populer mingguan, update status verifikasi langganan VIP oleh admin, dan pengingat masa aktif akun.\n'
+                          '• Izin Notifikasi (POST_NOTIFICATIONS): Untuk mengirimkan info episode sketsa terbaru, kabar video populer mingguan, update status verifikasi langganan VIP, dan pengingat masa aktif akun.\n'
                           '• Izin Kamera (CAMERA): Digunakan saat Anda memilih untuk mengambil foto struk transfer pembayaran atau foto profil secara langsung melalui kamera.\n'
                           '• Izin Galeri / Foto & Penyimpanan (READ_MEDIA_IMAGES / STORAGE): Digunakan untuk memilih berkas gambar struk pembayaran dari galeri ponsel Anda.\n\n'
                           'Catatan: HUMORA TIDAK PERNAH mengakses kontak, mikrofon, SMS, pelacakan lokasi fisik (GPS), atau berkas pribadi lain di luar perizinan di atas.',
@@ -235,7 +235,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                           'Kami menerapkan langkah-langkah pengamanan teknis dan organisasi yang ketat:\n\n'
                           '• Seluruh transmisi data dienkripsi dengan protokol aman SSL/TLS (HTTPS).\n'
                           '• Kata sandi Anda dilindungi menggunakan metode hashing satu arah standar industri (tidak pernah disimpan dalam bentuk teks biasa).\n'
-                          '• Berkas bukti pembayaran disimpan pada server aman dengan hak akses terbatas yang hanya dibuka oleh admin terverifikasi.',
+                          '• Berkas bukti pembayaran disimpan pada server aman dengan hak akses terbatas yang hanya dibuka oleh staf verifikasi berwenang.',
                     ),
                     const SizedBox(height: 12),
 

@@ -418,16 +418,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           logoUrl: '$baseHost/images/banks/bca.png',
         ),
       );
-      buttons.add(
-        _buildMethodButton(
-          code: 'mandiri',
-          label: 'Mandiri Transfer',
-          logoUrl: '$baseHost/images/banks/mandiri.png',
-        ),
-      );
     }
 
-    // Add QRIS button ONLY if enabled and configured by Admin in settings
+    // Add QRIS button ONLY if enabled and configured in settings
     if (qrisEnabled && isQrisConfigured) {
       buttons.add(
         _buildMethodButton(
@@ -768,7 +761,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
             const SizedBox(height: 10),
             Text(
-              'a.n. ${paymentInfo?.qris?.accountName ?? "PT HUMORA MEDIA KREATIF"}',
+              'a.n. ${paymentInfo?.qris?.accountName ?? "Global Mobile Content"}',
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
@@ -800,10 +793,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       selectedBank ??= banks.first;
     }
 
-    final String bankName = selectedBank?.bankName ?? (_selectedMethod == 'mandiri' ? 'Bank Mandiri' : 'Bank Central Asia (BCA)');
-    final String accNumber = selectedBank?.accountNumber ?? (_selectedMethod == 'mandiri' ? '137-00-998822-1' : '8830-192-888');
-    final String accName = selectedBank?.accountName ?? 'PT HUMORA MEDIA KREATIF';
-    final String instructions = selectedBank?.instructions ?? 'Transfer manual ke rekening di atas sesuai nominal paket.';
+    final String bankName = selectedBank?.bankName ?? 'Bank Central Asia (BCA)';
+    final String accNumber = selectedBank?.accountNumber ?? '2103039177';
+    final String accName = selectedBank?.accountName ?? 'Global Mobile Content';
+    final String instructions = selectedBank?.instructions ?? 'Transfer tepat sesuai nominal paket ke rekening BCA di atas.';
 
     return Container(
       width: double.infinity,
@@ -1068,7 +1061,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Biaya Admin & Pajak', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+              Text('Biaya Layanan & Pajak', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
               Text(
                 'Rp0 (Gratis)',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.green),

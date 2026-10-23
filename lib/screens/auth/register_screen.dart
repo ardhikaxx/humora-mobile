@@ -207,7 +207,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 40),
                 child: Text(
-                  'Daftar dalam 1 menit dan nikmati ratusan episode seru tanpa batas.',
+                  'Daftar dalam 1 menit dan nikmati beragam episode komedi terbaik.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,

@@ -67,7 +67,7 @@ class TransactionModel {
         return 'Ditolak';
       case 'pending':
       default:
-        return 'Menunggu Verifikasi Admin';
+        return 'Menunggu Verifikasi';
     }
   }
 }

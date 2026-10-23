@@ -2,15 +2,15 @@ class FaqData {
   static const List<Map<String, String>> faqs = [
     {
       'question': 'Apakah 2 video pertama benar-benar gratis selamanya?',
-      'answer': 'Ya! Seluruh judul video di HUMORA dapat ditonton secara gratis pada Episode 1 dan Episode 2 tanpa perlu registrasi akun maupun membayar. Episode 3 dan seterusnya dapat diakses dengan berlangganan paket Premium.',
+      'answer': 'Ya! Seluruh judul video di HUMORA dapat ditonton secara gratis pada Episode 1 dan Episode 2 tanpa perlu registrasi akun maupun membayar. Episode berikutnya dapat diakses dengan berlangganan paket VIP.',
     },
     {
-      'question': 'Bagaimana cara berlangganan Paket Premium HUMORA?',
-      'answer': 'Pilih menu Paket Langganan di Profil atau tap tombol "Langganan VIP" di Beranda. Pilih paket yang kamu inginkan (Bulanan, 3 Bulan, atau 1 Tahun), transfer ke rekening BCA/Mandiri resmi HUMORA atau scan QRIS, lalu unggah foto bukti transfer.',
+      'question': 'Bagaimana cara berlangganan Paket VIP HUMORA?',
+      'answer': 'Pilih menu Paket Langganan di Profil atau tap tombol "Langganan VIP" di Beranda. Pilih paket akses yang kamu inginkan, lakukan pembayaran melalui transfer bank BCA atau scan QRIS resmi HUMORA, lalu unggah foto bukti transfer.',
     },
     {
-      'question': 'Berapa lama proses verifikasi pembayaran manual?',
-      'answer': 'Admin keuangan HUMORA akan memeriksa dan menyetujui bukti transfer Anda dalam waktu maksimal 1x24 jam. Begitu disetujui, akun langsung berstatus VIP secara otomatis.',
+      'question': 'Berapa lama proses verifikasi pembayaran?',
+      'answer': 'Tim verifikasi HUMORA akan memeriksa bukti pembayaran Anda dalam waktu maksimal 1x24 jam. Begitu disetujui, akun langsung berstatus VIP secara otomatis.',
     },
     {
       'question': 'Video buffering atau macet saat diputar, apa solusinya?',

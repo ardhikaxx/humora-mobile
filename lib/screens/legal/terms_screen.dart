@@ -212,9 +212,9 @@ class TermsScreen extends StatelessWidget {
                       iconColor: const Color(0xFFCA8A04),
                       title: 'Langganan VIP & Verifikasi Pembayaran',
                       content:
-                          'HUMORA menawarkan paket langganan VIP berbayar (Mingguan, Bulanan, Tahunan) untuk membuka akses katalog video eksklusif tanpa batas.\n\n'
+                          'HUMORA menawarkan pilihan paket akses VIP berbayar untuk membuka akses katalog video eksklusif sesuai kuota dan masa aktif paket yang dipilih.\n\n'
                           '• Pengguna melakukan pembayaran melalui metode resmi (transfer bank / QRIS) dan mengunggah bukti transfer yang valid.\n'
-                          '• Verifikasi bukti transaksi dilakukan oleh tim admin HUMORA. Masa aktif paket dihitung sejak status transaksi disetujui.\n'
+                          '• Verifikasi bukti transaksi dilakukan oleh tim resmi HUMORA. Masa aktif paket dihitung sejak status transaksi disetujui.\n'
                           '• Pembayaran yang telah diverifikasi dan paket yang telah aktif bersifat final dan tidak dapat dikembalikan (non-refundable).',
                     ),
                     const SizedBox(height: 12),

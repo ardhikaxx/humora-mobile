@@ -147,7 +147,7 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Simpan tontonan favoritmu dan nikmati akses video premium tanpa batas.',
+            'Simpan tontonan favoritmu dan nikmati akses video komedi pilihan.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 12,
@@ -400,7 +400,7 @@ class ProfileScreen extends StatelessWidget {
                   Icon(LucideIcons.crown, size: 16, color: AppColors.primaryYellow),
                   SizedBox(width: 8),
                   Text(
-                    'Aktifkan Premium Sekarang',
+                    'Aktifkan VIP Sekarang',
                     style: TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w700,

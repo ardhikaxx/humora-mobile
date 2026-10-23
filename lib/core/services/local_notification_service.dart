@@ -100,7 +100,7 @@ class LocalNotificationService {
   }
 
   // =========================================================================
-  // 1. NOTIFIKASI VERIFIKASI PREMIUM DISETUJUI ADMIN
+  // 1. NOTIFIKASI VERIFIKASI PREMIUM DISETUJUI
   // =========================================================================
   static Future<void> showVipApprovedNotification({
     required String trxCode,
@@ -122,7 +122,7 @@ class LocalNotificationService {
       enableVibration: true,
       visibility: NotificationVisibility.public,
       styleInformation: BigTextStyleInformation(
-        'Selamat! Pembayaran transaksi $trxCode$planStr Anda telah disetujui admin. Semua video premium HUMORA kini terbuka tanpa batas!',
+        'Selamat! Pembayaran transaksi $trxCode$planStr Anda telah disetujui. Akses video VIP HUMORA kini telah aktif!',
         contentTitle: '🎉 Akun VIP HUMORA Anda Telah Aktif!',
         summaryText: 'Transaksi Berhasil',
       ),
@@ -140,7 +140,7 @@ class LocalNotificationService {
     await _notificationsPlugin.show(
       id: id,
       title: '🎉 Akun VIP HUMORA Anda Telah Aktif!',
-      body: 'Pembayaran transaksi $trxCode$planStr telah disetujui admin. Nikmati tontonan komedi tanpa batas!',
+      body: 'Pembayaran transaksi $trxCode$planStr telah disetujui. Selamat menikmati tontonan komedi pilihan Anda!',
       notificationDetails: notificationDetails,
       payload: 'vip_approved',
     );
@@ -257,7 +257,7 @@ class LocalNotificationService {
       color: const Color(0xFF43135C),
       icon: '@mipmap/ic_launcher',
       styleInformation: const BigTextStyleInformation(
-        'Mau nonton semua episode tanpa jeda dan tanpa batas? Dapatkan akses VIP mulai dari Rp15.000 saja. Cek paket sekarang!',
+        'Mau nonton episode seru tanpa jeda? Dapatkan akses VIP mulai dari Rp15.000 saja. Cek pilihan paket sekarang!',
         contentTitle: '⭐ Upgrade Akun HUMORA ke VIP Sekarang!',
         summaryText: 'Penawaran Spesial',
       ),
@@ -275,7 +275,7 @@ class LocalNotificationService {
     await _notificationsPlugin.show(
       id: id,
       title: '⭐ Upgrade Akun HUMORA ke VIP Sekarang!',
-      body: 'Buka semua episode komedi eksklusif tanpa batas dengan paket VIP.',
+      body: 'Buka episode komedi eksklusif dengan paket langganan VIP.',
       notificationDetails: notificationDetails,
       payload: 'subscribe_invite',
     );

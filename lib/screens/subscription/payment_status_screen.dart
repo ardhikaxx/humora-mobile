@@ -72,7 +72,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
         );
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Selamat! Pembayaran Anda telah disetujui admin dan VIP sudah aktif!'),
+            content: Text('Selamat! Pembayaran Anda telah disetujui dan akses VIP sudah aktif!'),
             backgroundColor: AppColors.green,
           ),
         );
@@ -86,7 +86,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Status masih menunggu verifikasi admin keuangan.'),
+            content: Text('Status masih menunggu verifikasi pembayaran.'),
             backgroundColor: Color(0xFFD97706),
           ),
         );
@@ -254,7 +254,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
     } else {
       bg = const Color(0xFFFEF3C7);
       text = const Color(0xFFB45309);
-      label = 'MENUNGGU VERIFIKASI ADMIN';
+      label = 'MENUNGGU VERIFIKASI';
     }
 
     return Container(
@@ -289,7 +289,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
       return 'Selamat! Pembayaran berhasil dan paket akses video Anda telah aktif.';
     } else if (_currentTrx.isRejected) {
       return _currentTrx.rejectReason ??
-          'Bukti transfer tidak dapat diverifikasi oleh admin. Silakan periksa kembali nominal dan bukti yang diunggah.';
+          'Bukti transfer tidak dapat diverifikasi. Silakan periksa kembali nominal dan bukti yang diunggah.';
     }
     return 'Tim verifikasi kami sedang memeriksa bukti pembayaran Anda. VIP akan aktif otomatis segera setelah diverifikasi.';
   }
@@ -393,10 +393,10 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
             isComplete: _currentTrx.proofUploaded,
           ),
           _buildTimelineStep(
-            title: '3. Verifikasi oleh Admin',
+            title: '3. Verifikasi Pembayaran',
             subtitle: isDone
                 ? 'Selesai diverifikasi'
-                : (_currentTrx.isRejected ? 'Ditolak admin' : 'Sedang diproses admin portal'),
+                : (_currentTrx.isRejected ? 'Ditolak' : 'Sedang diproses verifikasi'),
             isComplete: isDone,
             isCurrent: !_currentTrx.isSuccess && !_currentTrx.isRejected,
             isError: _currentTrx.isRejected,
