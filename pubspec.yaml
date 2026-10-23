@@ -56,6 +56,7 @@ dependencies:
   auto_size_text: ^3.0.0
   vibration: ^3.2.1
   qr_flutter: ^4.1.0
+  flutter_native_splash: ^2.4.4
 
 dev_dependencies:
   flutter_test:
@@ -82,6 +83,20 @@ flutter_launcher_icons:
   windows:
     generate: true
     image_path: "assets/logo-humora.png"
+
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: "assets/logo-humora-rounded.png"
+  color_dark: "#1F0E38"
+  image_dark: "assets/logo-humora-rounded.png"
+
+  android_12:
+    image: "assets/logo-humora-rounded.png"
+    icon_background_color: "#FFFFFF"
+    image_dark: "assets/logo-humora-rounded.png"
+    icon_background_color_dark: "#1F0E38"
+
+  web: false
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

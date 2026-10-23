@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:provider/provider.dart';
 import 'core/network/api_config.dart';
 import 'core/theme/app_theme.dart';
@@ -18,7 +19,8 @@ import 'screens/main_navigation_shell.dart';
 final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   // Initialize API configuration
   await ApiConfig.init();
@@ -36,6 +38,9 @@ void main() async {
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
+
+  // Remove native splash right before app renders
+  FlutterNativeSplash.remove();
 
   runApp(
     MultiProvider(
@@ -69,4 +74,3 @@ class HumoraApp extends StatelessWidget {
     );
   }
 }
-
