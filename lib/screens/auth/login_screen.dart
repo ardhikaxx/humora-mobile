@@ -459,61 +459,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Quick Demo Accounts Selector
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.border, width: 1.0),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Row(
-                            children: [
-                              Icon(LucideIcons.userCheck, size: 14, color: AppColors.textSecondary),
-                              SizedBox(width: 6),
-                              Text(
-                                'PILIH AKUN PENGGUNA CEPAT',
-                                style: TextStyle(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.textSecondary,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: [
-                              _buildQuickAccountChip(
-                                label: 'Pengguna 1 (Gratis)',
-                                email: 'pengguna1@gmail.com',
-                                pass: 'password',
-                                color: const Color(0xFF10B981),
-                              ),
-                              _buildQuickAccountChip(
-                                label: 'Pengguna 2 (VIP Aktif)',
-                                email: 'pengguna2@gmail.com',
-                                pass: 'password',
-                                color: const Color(0xFFF59E0B),
-                              ),
-                              _buildQuickAccountChip(
-                                label: 'Pengguna 3 (Expired)',
-                                email: 'pengguna3@gmail.com',
-                                pass: 'password',
-                                color: const Color(0xFFEF4444),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
+
 
                     // Submit Button
                     SizedBox(
@@ -651,50 +597,5 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildQuickAccountChip({
-    required String label,
-    required String email,
-    required String pass,
-    required Color color,
-  }) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedTabIndex = 0;
-          _emailController.text = email;
-          _passwordController.text = pass;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withValues(alpha: 0.3), width: 1.0),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+
 }

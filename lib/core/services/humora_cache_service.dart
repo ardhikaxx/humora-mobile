@@ -31,9 +31,12 @@ class HumoraCacheService {
   }
 
   /// Downloads and caches a video or media file in background or returns the existing cached file
-  static Future<File?> downloadAndCacheFile(String url) async {
+  static Future<File?> downloadAndCacheFile(
+    String url, {
+    Map<String, String>? headers,
+  }) async {
     try {
-      final file = await videoCacheManager.getSingleFile(url);
+      final file = await videoCacheManager.getSingleFile(url, headers: headers);
       return file;
     } catch (e) {
       debugPrint('HumoraCacheService: Error caching file $url: $e');

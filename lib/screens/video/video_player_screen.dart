@@ -58,6 +58,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   int _sessionWatchedSeconds = 0;
   Timer? _heartbeatTimer;
   Timer? _likeSyncTimer;
+  Timer? _preCacheTimer;
+  final ValueNotifier<double> _progressNotifier = ValueNotifier<double>(0.0);
+  final ValueNotifier<Duration> _positionNotifier = ValueNotifier<Duration>(Duration.zero);
   final ApiService _apiService = ApiService();
 
   @override
@@ -124,15 +127,18 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     WidgetsBinding.instance.removeObserver(this);
     _heartbeatTimer?.cancel();
     _likeSyncTimer?.cancel();
+    _preCacheTimer?.cancel();
     _sendViewingHeartbeat();
     _syncWatchHistory();
+    _progressNotifier.dispose();
+    _positionNotifier.dispose();
     _disposePlayer();
     super.dispose();
   }
 
   void _startLikeSyncTimer() {
     _likeSyncTimer?.cancel();
-    _likeSyncTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+    _likeSyncTimer = Timer.periodic(const Duration(seconds: 20), (_) {
       _triggerLikeSync();
     });
     _triggerLikeSync();
@@ -255,8 +261,22 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     if (dur.inMilliseconds > 0) {
       _currentPosition = pos;
       _totalDuration = dur;
-      _currentProgress = (pos.inMilliseconds / dur.inMilliseconds).clamp(0.0, 1.0);
-      _isPlaying = val.isPlaying;
+      final progress = (pos.inMilliseconds / dur.inMilliseconds).clamp(0.0, 1.0);
+      _currentProgress = progress;
+
+      // Efficient targeted notifier updates - prevents rebuilding entire 50-widget screen every frame!
+      if ((_progressNotifier.value - progress).abs() > 0.001) {
+        _progressNotifier.value = progress;
+      }
+      if (_positionNotifier.value.inSeconds != pos.inSeconds) {
+        _positionNotifier.value = pos;
+      }
+
+      // Only trigger UI setState if play/pause state changed
+      if (_isPlaying != val.isPlaying) {
+        _isPlaying = val.isPlaying;
+        _safeSetState(() {});
+      }
 
       // When video is actively playing and controls are visible, ensure the 2s auto-hide timer is active
       if (_isPlaying && _showControls && (_hideControlsTimer == null || !_hideControlsTimer!.isActive)) {
@@ -264,8 +284,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       }
 
       _checkVideoCompletion(val, pos, dur);
-
-      _safeSetState(() {});
     }
   }
 
@@ -419,18 +437,16 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
       if (localCachedFile != null) {
         debugPrint('HUMORA VIDEO STREAM: Playing from local cache (0 data usage)');
-        newController = VideoPlayerController.file(localCachedFile);
+        newController = VideoPlayerController.file(
+          localCachedFile,
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+        );
       } else {
         newController = VideoPlayerController.networkUrl(
           Uri.parse(streamUrl),
           httpHeaders: headers,
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
         );
-        // Pre-cache video in background for seamless replay without consuming quota
-        if (streamUrl.startsWith('http://') || streamUrl.startsWith('https://')) {
-          HumoraCacheService.downloadAndCacheFile(streamUrl).then((_) {
-            debugPrint('HUMORA VIDEO STREAM: Cached in background');
-          }).catchError((_) {});
-        }
       }
 
       await newController.initialize();
@@ -444,6 +460,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       newController.addListener(_onVideoControllerUpdate);
       await newController.play();
       WakelockService.enable();
+
+      // Pre-cache next episode in background after current video is safely playing
+      _schedulePreCacheNextEpisode(series, headers);
 
       _safeSetState(() {
         _videoController = newController;
@@ -509,12 +528,57 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
   void _startHeartbeatTimer() {
     _heartbeatTimer?.cancel();
-    _heartbeatTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       if (!mounted || _isDisposed || _isPopping) return;
       if (_videoController != null && _videoController!.value.isPlaying) {
-        _sessionWatchedSeconds += 4;
+        _sessionWatchedSeconds += 10;
         _sendViewingHeartbeat();
       }
+    });
+  }
+
+  void _schedulePreCacheNextEpisode(dynamic series, Map<String, String> headers) {
+    _preCacheTimer?.cancel();
+    _preCacheTimer = Timer(const Duration(seconds: 3), () async {
+      if (!mounted || _isDisposed || _isPopping) return;
+      try {
+        final nextEpNumber = _currentEpisodeNumber + 1;
+        final nextEpList = series.episodes.where((e) => e.episodeNumber == nextEpNumber).toList();
+        if (nextEpList.isNotEmpty) {
+          final nextEp = nextEpList.first;
+          final auth = context.read<AuthProvider>();
+          if (auth.canAccessEpisode(
+            nextEp.episodeNumber,
+            episodeId: int.tryParse(nextEp.id),
+            seriesTotalEpisodes: series.episodes.length,
+            isFreeEpisode: nextEp.isFree,
+          )) {
+            String nextStreamUrl = '${ApiConfig.baseUrl}/files/stream/${nextEp.id}';
+            if (nextEp.streamUrl != null && nextEp.streamUrl!.isNotEmpty) {
+              final parsed = Uri.tryParse(nextEp.streamUrl!);
+              if (parsed != null && parsed.hasScheme) {
+                final baseUri = Uri.parse(ApiConfig.baseUrl);
+                if (parsed.host == 'localhost' || parsed.host == '127.0.0.1') {
+                  nextStreamUrl = parsed.replace(
+                    scheme: baseUri.scheme,
+                    host: baseUri.host,
+                    port: baseUri.hasPort ? baseUri.port : null,
+                  ).toString();
+                } else {
+                  nextStreamUrl = nextEp.streamUrl!;
+                }
+              }
+            }
+
+            final alreadyCached = await HumoraCacheService.getCachedVideoFile(nextStreamUrl);
+            if (alreadyCached == null) {
+              debugPrint('HUMORA VIDEO STREAM: Pre-caching next video (Episode $nextEpNumber) in background');
+              await HumoraCacheService.downloadAndCacheFile(nextStreamUrl, headers: headers);
+              debugPrint('HUMORA VIDEO STREAM: Next video pre-cached successfully');
+            }
+          }
+        }
+      } catch (_) {}
     });
   }
 
@@ -644,6 +708,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _hasTriggeredCompletion = false;
     }
     _videoController!.seekTo(clamped);
+    _currentPosition = clamped;
+    _positionNotifier.value = clamped;
+    if (_totalDuration.inMilliseconds > 0) {
+      _currentProgress = (_currentPosition.inMilliseconds / _totalDuration.inMilliseconds).clamp(0.0, 1.0);
+      _progressNotifier.value = _currentProgress;
+    }
     if (_isPlaying || (_videoController != null && _videoController!.value.isPlaying)) {
       _scheduleHideControls();
     }
@@ -1246,14 +1316,16 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // 1. Real VideoPlayer or Thumbnail Still
+            // 1. Real VideoPlayer (isolated with RepaintBoundary for GPU optimization) or Thumbnail Still
             if (_videoController != null && _videoController!.value.isInitialized)
-              Center(
-                child: AspectRatio(
-                  aspectRatio: _videoController!.value.aspectRatio > 0
-                      ? _videoController!.value.aspectRatio
-                      : 16 / 9,
-                  child: VideoPlayer(_videoController!),
+              RepaintBoundary(
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: _videoController!.value.aspectRatio > 0
+                        ? _videoController!.value.aspectRatio
+                        : 16 / 9,
+                    child: VideoPlayer(_videoController!),
+                  ),
                 ),
               )
             else
@@ -1321,17 +1393,22 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                 ),
               ),
 
-            // 3. Mini bottom progress line when controls are hidden for unobtrusive playback
+            // 3. Mini bottom progress line when controls are hidden (targeted ValueListenableBuilder)
             if (!_showControls && _videoController != null && _videoController!.value.isInitialized)
               Positioned(
                 left: 0,
                 right: 0,
                 bottom: 0,
-                child: LinearProgressIndicator(
-                  value: _currentProgress,
-                  backgroundColor: Colors.transparent,
-                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryYellow),
-                  minHeight: 2.5,
+                child: ValueListenableBuilder<double>(
+                  valueListenable: _progressNotifier,
+                  builder: (context, progress, _) {
+                    return LinearProgressIndicator(
+                      value: progress,
+                      backgroundColor: Colors.transparent,
+                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryYellow),
+                      minHeight: 2.5,
+                    );
+                  },
                 ),
               ),
 
@@ -1521,13 +1598,18 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                '${_formatDuration(_currentPosition)} / ${_formatDuration(_totalDuration)}',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
+                              ValueListenableBuilder<Duration>(
+                                valueListenable: _positionNotifier,
+                                builder: (context, pos, _) {
+                                  return Text(
+                                    '${_formatDuration(pos)} / ${_formatDuration(_totalDuration)}',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  );
+                                },
                               ),
                               Row(
                                 children: [
@@ -1565,7 +1647,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                             ],
                           ),
                           const SizedBox(height: 4),
-                          // Progress Bar with seek tap
+                          // Progress Bar with seek tap (targeted ValueListenableBuilder)
                           GestureDetector(
                             onHorizontalDragUpdate: (details) {
                               final box = context.findRenderObject() as RenderBox?;
@@ -1575,14 +1657,23 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                                 final ratio = (tapPos / totalWidth).clamp(0.0, 1.0);
                                 final seekMs = (ratio * _totalDuration.inMilliseconds).toInt();
                                 _videoController?.seekTo(Duration(milliseconds: seekMs));
+                                _currentPosition = Duration(milliseconds: seekMs);
+                                _currentProgress = ratio;
+                                _positionNotifier.value = _currentPosition;
+                                _progressNotifier.value = ratio;
                                 if (_isPlaying) _scheduleHideControls();
                               }
                             },
-                            child: LinearProgressIndicator(
-                              value: _currentProgress,
-                              backgroundColor: Colors.white.withValues(alpha: 0.3),
-                              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryYellow),
-                              minHeight: 4,
+                            child: ValueListenableBuilder<double>(
+                              valueListenable: _progressNotifier,
+                              builder: (context, progress, _) {
+                                return LinearProgressIndicator(
+                                  value: progress,
+                                  backgroundColor: Colors.white.withValues(alpha: 0.3),
+                                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryYellow),
+                                  minHeight: 4,
+                                );
+                              },
                             ),
                           ),
                         ],
