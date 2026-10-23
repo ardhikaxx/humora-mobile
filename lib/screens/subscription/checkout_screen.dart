@@ -357,12 +357,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ),
           const SizedBox(height: 2),
           Text(
-            'Durasi ${widget.plan.durationText} • Bebas nonton seluruh video VIP',
+            _getPlanSubtitle(),
             style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
         ],
       ),
     );
+  }
+
+  String _getPlanSubtitle() {
+    if (widget.plan.isAddon) {
+      return 'Ekstra ${widget.plan.videoQuota ?? 5} video • Mengikuti masa aktif paket awal';
+    } else if (widget.plan.isFullAccess) {
+      return 'Durasi ${widget.plan.durationText} • Bebas nonton seluruh video VIP';
+    } else {
+      // Paket Akses Mingguan
+      return 'Durasi ${widget.plan.durationText} • Akses nonton hanya 15 video saja diawal';
+    }
   }
 
   Widget _buildMethodSelector(dynamic paymentInfo) {
