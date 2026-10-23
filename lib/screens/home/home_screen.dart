@@ -15,6 +15,7 @@ import '../../providers/notification_provider.dart';
 import '../../widgets/series_poster_card.dart';
 import '../../widgets/humora_image.dart';
 import '../../widgets/humora_empty_state.dart';
+import '../../widgets/humora_mascot_refresh_indicator.dart';
 import '../auth/login_screen.dart';
 import '../notification/notification_screen.dart';
 import '../subscription/subscription_plans_screen.dart';
@@ -97,10 +98,8 @@ class _HomeScreenState extends State<HomeScreen> {
             _buildTopHeader(context, auth, notifProv),
 
             Expanded(
-              child: RefreshIndicator(
-                color: AppColors.primaryYellow,
+              child: HumoraMascotRefreshIndicator(
                 onRefresh: () async {
-                  VibrationService.lightImpact();
                   await Future.wait([
                     seriesProv.fetchSeries(),
                     seriesProv.fetchCategories(),

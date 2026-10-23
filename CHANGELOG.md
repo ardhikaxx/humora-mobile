@@ -6,6 +6,18 @@ Format pencatatan berpedoman pada [Keep a Changelog](https://keepachangelog.com/
 
 ---
 
+## [1.3.0] - 2026-10-23
+
+### Ditambahkan (Added)
+- **Tarik Layar untuk Muat Ulang Interaktif Maskot "Si Humo" (`custom_refresh_indicator: ^4.0.2`)**:
+  - Komponen `HumoraMascotRefreshIndicator` pada Beranda (`HomeScreen`) menggantikan animasi putaran standar.
+  - Menampilkan animasi maskot Si Humo (`logo-humora-rounded.png`) yang mengintip ceria dengan rotasi kemiringan dinamis saat ditarik, melompat/bouncing gembira saat proses refresh berlangsung, serta umpan balik getaran haptic (*haptic feedback*) saat status *armed* dan *complete*.
+  - Menampilkan badge status informatif: *"Tarik untuk tawa segar..."*, *"Lepas untuk Si Humo! 🎉"*, *"Menyiapkan tawa segar..."*, dan *"Tawa siap disajikan! ✨"*.
+- **Splash Screen Native Instan (`flutter_native_splash: ^2.4.4`)**:
+  - Konfigurasi splash screen native OS milidetik pertama dengan logo bulat presisi (`logo-humora-rounded.png`) pada Android 12+ dan Android standar, menghilangkan kedipan layar putih saat cold start.
+
+---
+
 ## [1.2.0] - 2026-10-20
 
 ### Ditambahkan (Added)

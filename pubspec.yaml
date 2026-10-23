@@ -57,6 +57,7 @@ dependencies:
   vibration: ^3.2.1
   qr_flutter: ^4.1.0
   flutter_native_splash: ^2.4.4
+  custom_refresh_indicator: ^4.0.2
 
 dev_dependencies:
   flutter_test:
