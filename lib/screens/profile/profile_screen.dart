@@ -767,9 +767,7 @@ class ProfileScreen extends StatelessWidget {
               iconBg: const Color(0xFFFEE2E2),
               iconColor: const Color(0xFFEF4444),
               title: 'Keluar dari Akun',
-              subtitle: 'Kembali ke mode tamu',
               titleColor: const Color(0xFFEF4444),
-              subtitleColor: const Color(0xFFF87171),
               onTap: () {
                 _showLogoutDialog(context, auth);
               },
@@ -785,7 +783,7 @@ class ProfileScreen extends StatelessWidget {
     required Color iconBg,
     required Color iconColor,
     required String title,
-    required String subtitle,
+    String? subtitle,
     required VoidCallback onTap,
     Color? titleColor,
     Color? subtitleColor,
@@ -819,14 +817,16 @@ class ProfileScreen extends StatelessWidget {
                       color: titleColor ?? AppColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 1),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: subtitleColor ?? AppColors.textSecondary,
+                  if (subtitle != null && subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 1),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: subtitleColor ?? AppColors.textSecondary,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -851,7 +851,7 @@ class ProfileScreen extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
         ),
         content: const Text(
-          'Kamu akan kembali ke mode Tamu. Kamu tetap dapat menonton 2 episode pertama gratis.',
+          'Apakah kamu yakin ingin keluar dari akun ini?',
           style: TextStyle(fontSize: 13),
         ),
         actions: [
