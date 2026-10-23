@@ -286,7 +286,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
 
   String _getSubtitleText() {
     if (_currentTrx.isSuccess) {
-      return 'Selamat! Anda sekarang dapat menonton seluruh episode VIP Humora tanpa batas.';
+      return 'Selamat! Pembayaran berhasil dan paket akses video Anda telah aktif.';
     } else if (_currentTrx.isRejected) {
       return _currentTrx.rejectReason ??
           'Bukti transfer tidak dapat diverifikasi oleh admin. Silakan periksa kembali nominal dan bukti yang diunggah.';

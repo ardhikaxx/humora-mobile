@@ -1052,7 +1052,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 2),
                 const Text(
-                  'Mulai Rp19.000 • Nonton bebas t...',
+                  'Mulai Rp15.000 • Akses video serial',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,

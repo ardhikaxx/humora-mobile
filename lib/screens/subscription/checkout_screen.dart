@@ -369,7 +369,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (widget.plan.isAddon) {
       return 'Ekstra ${widget.plan.videoQuota ?? 5} video • Mengikuti masa aktif paket awal';
     } else if (widget.plan.isFullAccess) {
-      return 'Durasi ${widget.plan.durationText} • Bebas nonton seluruh video VIP';
+      return 'Durasi ${widget.plan.durationText} • Akses seluruh katalog video';
     } else {
       // Paket Akses Mingguan
       return 'Durasi ${widget.plan.durationText} • Akses nonton hanya 15 video saja diawal';

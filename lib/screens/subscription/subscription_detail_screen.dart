@@ -620,7 +620,7 @@ class _SubscriptionDetailScreenState extends State<SubscriptionDetailScreen> {
             ),
           ),
           const SizedBox(height: 14),
-          _buildPerkRow('Bebas nonton seluruh video terkunci'),
+          _buildPerkRow('Akses video sesuai kuota paket yang aktif'),
           const SizedBox(height: 10),
           _buildPerkRow('Akses lebih awal untuk episode rilis terbaru'),
           const SizedBox(height: 10),

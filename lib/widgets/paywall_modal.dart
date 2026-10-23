@@ -138,7 +138,7 @@ class PaywallModal extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Video ini khusus member Premium. Buka semua video dan lanjutkan tawa tanpa batas.',
+            'Video ini khusus member VIP. Buka akses video serial komedi pilihan Anda.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
@@ -162,16 +162,16 @@ class PaywallModal extends StatelessWidget {
                   icon: LucideIcons.playCircle,
                   iconBg: const Color(0xFFFEF3C7),
                   iconColor: const Color(0xFFD97706),
-                  title: 'Akses Semua Video',
-                  subtitle: 'Nonton semua video premium tanpa gembok',
+                  title: 'Akses Video Episode VIP',
+                  subtitle: 'Nonton episode video serial pilihan tanpa gembok',
                 ),
                 const SizedBox(height: 14),
                 _buildFeatureRow(
                   icon: LucideIcons.clapperboard,
                   iconBg: const Color(0xFFFFF7ED),
                   iconColor: const Color(0xFFEA580C),
-                  title: 'Tanpa Batas Semua Judul Video',
-                  subtitle: 'Katalog lengkap sketsa komedi & hiburan',
+                  title: 'Paket Akses & Add-on',
+                  subtitle: 'Tersedia paket mingguan 15 video dan add-on kuota',
                 ),
                 const SizedBox(height: 14),
                 _buildFeatureRow(
