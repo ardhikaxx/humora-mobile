@@ -59,8 +59,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   Timer? _heartbeatTimer;
   Timer? _likeSyncTimer;
   Timer? _preCacheTimer;
+  Timer? _currentPreCacheTimer;
   final ValueNotifier<double> _progressNotifier = ValueNotifier<double>(0.0);
   final ValueNotifier<Duration> _positionNotifier = ValueNotifier<Duration>(Duration.zero);
+  final ValueNotifier<bool> _isBufferingNotifier = ValueNotifier<bool>(false);
+  final ValueNotifier<double> _bufferedProgressNotifier = ValueNotifier<double>(0.0);
+  int _reconnectAttempts = 0;
+  bool _isScrubbing = false;
   final ApiService _apiService = ApiService();
 
   @override
@@ -128,10 +133,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     _heartbeatTimer?.cancel();
     _likeSyncTimer?.cancel();
     _preCacheTimer?.cancel();
+    _currentPreCacheTimer?.cancel();
     _sendViewingHeartbeat();
     _syncWatchHistory();
     _progressNotifier.dispose();
     _positionNotifier.dispose();
+    _isBufferingNotifier.dispose();
+    _bufferedProgressNotifier.dispose();
     _disposePlayer();
     super.dispose();
   }
@@ -258,18 +266,40 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     final pos = val.position;
     final dur = val.duration;
 
-    if (dur.inMilliseconds > 0) {
-      _currentPosition = pos;
-      _totalDuration = dur;
-      final progress = (pos.inMilliseconds / dur.inMilliseconds).clamp(0.0, 1.0);
-      _currentProgress = progress;
+    // 1. Buffering state notifier
+    if (_isBufferingNotifier.value != val.isBuffering) {
+      _isBufferingNotifier.value = val.isBuffering;
+    }
 
-      // Efficient targeted notifier updates - prevents rebuilding entire 50-widget screen every frame!
-      if ((_progressNotifier.value - progress).abs() > 0.001) {
-        _progressNotifier.value = progress;
+    // 2. Buffered ranges calculation (highest buffered head)
+    if (val.buffered.isNotEmpty && dur.inMilliseconds > 0) {
+      double maxBufferedMs = 0.0;
+      for (final range in val.buffered) {
+        final endMs = range.end.inMilliseconds.toDouble();
+        if (endMs > maxBufferedMs) {
+          maxBufferedMs = endMs;
+        }
       }
-      if (_positionNotifier.value.inSeconds != pos.inSeconds) {
-        _positionNotifier.value = pos;
+      final bufRatio = (maxBufferedMs / dur.inMilliseconds).clamp(0.0, 1.0);
+      if ((_bufferedProgressNotifier.value - bufRatio).abs() > 0.01) {
+        _bufferedProgressNotifier.value = bufRatio;
+      }
+    }
+
+    if (dur.inMilliseconds > 0) {
+      _totalDuration = dur;
+      if (!_isScrubbing) {
+        _currentPosition = pos;
+        final progress = (pos.inMilliseconds / dur.inMilliseconds).clamp(0.0, 1.0);
+        _currentProgress = progress;
+
+        // Efficient targeted notifier updates - prevents rebuilding entire 50-widget screen every frame!
+        if ((_progressNotifier.value - progress).abs() > 0.001) {
+          _progressNotifier.value = progress;
+        }
+        if (_positionNotifier.value.inSeconds != pos.inSeconds) {
+          _positionNotifier.value = pos;
+        }
       }
 
       // Only trigger UI setState if play/pause state changed
@@ -457,16 +487,28 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
         return;
       }
 
+      _reconnectAttempts = 0; // Successfully connected
       newController.addListener(_onVideoControllerUpdate);
       await newController.play();
       WakelockService.enable();
 
-      // Pre-cache next episode in background after current video is safely playing
+      // If user had a prior playback position, seek to it
+      if (_currentPosition.inSeconds > 0 && _currentPosition < newController.value.duration - const Duration(seconds: 3)) {
+        await newController.seekTo(_currentPosition);
+      }
+
+      // Dual background caching:
+      // A. Cache current streaming episode in background for instant replay & 0-data seeking
+      if (localCachedFile == null && (streamUrl.startsWith('http://') || streamUrl.startsWith('https://'))) {
+        _schedulePreCacheCurrentEpisode(streamUrl, headers);
+      }
+      // B. Pre-cache next episode in background after current video is safely playing
       _schedulePreCacheNextEpisode(series, headers);
 
       _safeSetState(() {
         _videoController = newController;
         _isControllerInitializing = false;
+        _hasVideoError = false;
         _isPlaying = true;
         _showControls = true;
         _totalDuration = newController.value.duration;
@@ -479,6 +521,22 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     } catch (e, st) {
       debugPrint('HUMORA VIDEO PLAYBACK ERROR: $e\n$st');
       WakelockService.disable();
+
+      // Smart auto-reconnect on network dip (up to 2 attempts)
+      if (_reconnectAttempts < 2 && mounted && !_isDisposed && !_isPopping) {
+        _reconnectAttempts++;
+        debugPrint('HUMORA VIDEO AUTO-RECONNECT: Attempt $_reconnectAttempts of 2 in 1.5s...');
+        _safeSetState(() {
+          _isControllerInitializing = true;
+          _hasVideoError = false;
+        });
+        await Future.delayed(const Duration(milliseconds: 1500));
+        if (mounted && !_isDisposed && !_isPopping) {
+          _initializeVideoPlayer();
+          return;
+        }
+      }
+
       if (mounted && !_isDisposed && !_isPopping) {
         _safeSetState(() {
           _isControllerInitializing = false;
@@ -486,6 +544,21 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
         });
       }
     }
+  }
+
+  void _schedulePreCacheCurrentEpisode(String streamUrl, Map<String, String> headers) {
+    _currentPreCacheTimer?.cancel();
+    _currentPreCacheTimer = Timer(const Duration(seconds: 2), () async {
+      if (!mounted || _isDisposed || _isPopping) return;
+      try {
+        final cached = await HumoraCacheService.getCachedVideoFile(streamUrl);
+        if (cached == null) {
+          debugPrint('HUMORA VIDEO STREAM: Background-caching current video for instant replay');
+          await HumoraCacheService.downloadAndCacheFile(streamUrl, headers: headers);
+          debugPrint('HUMORA VIDEO STREAM: Current video cached successfully');
+        }
+      } catch (_) {}
+    });
   }
 
   void _syncWatchHistory() {
@@ -656,6 +729,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     _sendViewingHeartbeat();
     _syncWatchHistory();
     _hasTriggeredCompletion = false;
+    _reconnectAttempts = 0;
 
     _safeSetState(() {
       _currentEpisodeNumber = episodeNumber;
@@ -663,6 +737,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _currentPosition = Duration.zero;
       _showControls = true;
       _isControllerInitializing = true;
+      _hasVideoError = false;
     });
 
     _initializeVideoPlayer();
@@ -1339,9 +1414,23 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
               Container(
                 color: Colors.black.withValues(alpha: 0.6),
                 child: const Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.primaryYellow,
-                    strokeWidth: 3,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(
+                        color: AppColors.primaryYellow,
+                        strokeWidth: 3,
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        'Menghubungkan video...',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               )
@@ -1393,22 +1482,89 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                 ),
               ),
 
-            // 3. Mini bottom progress line when controls are hidden (targeted ValueListenableBuilder)
+            // 2b. Modern Buffering Pill Indicator during active playback
+            if (!_isControllerInitializing && !_hasVideoError)
+              ValueListenableBuilder<bool>(
+                valueListenable: _isBufferingNotifier,
+                builder: (context, isBuffering, _) {
+                  if (!isBuffering) return const SizedBox.shrink();
+                  return Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.7),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 13,
+                            height: 13,
+                            child: CircularProgressIndicator(
+                              color: AppColors.primaryYellow,
+                              strokeWidth: 2,
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Memuat video...',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+            // 3. Mini bottom progress line when controls are hidden
             if (!_showControls && _videoController != null && _videoController!.value.isInitialized)
               Positioned(
                 left: 0,
                 right: 0,
                 bottom: 0,
-                child: ValueListenableBuilder<double>(
-                  valueListenable: _progressNotifier,
-                  builder: (context, progress, _) {
-                    return LinearProgressIndicator(
-                      value: progress,
-                      backgroundColor: Colors.transparent,
-                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryYellow),
-                      minHeight: 2.5,
-                    );
-                  },
+                child: SizedBox(
+                  height: 3,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Buffered preload track
+                      ValueListenableBuilder<double>(
+                        valueListenable: _bufferedProgressNotifier,
+                        builder: (context, buffered, _) {
+                          return LinearProgressIndicator(
+                            value: buffered,
+                            backgroundColor: Colors.black.withValues(alpha: 0.3),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white.withValues(alpha: 0.3),
+                            ),
+                            minHeight: 3,
+                          );
+                        },
+                      ),
+                      // Active playback progress head
+                      ValueListenableBuilder<double>(
+                        valueListenable: _progressNotifier,
+                        builder: (context, progress, _) {
+                          return LinearProgressIndicator(
+                            value: progress,
+                            backgroundColor: Colors.transparent,
+                            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryYellow),
+                            minHeight: 3,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
 
@@ -1647,8 +1803,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                             ],
                           ),
                           const SizedBox(height: 4),
-                          // Progress Bar with seek tap (targeted ValueListenableBuilder)
+                          // Progress Bar with smooth seek tap & drag (throttled for zero decoder jank)
                           GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onHorizontalDragStart: (details) {
+                              _isScrubbing = true;
+                              _hideControlsTimer?.cancel();
+                            },
                             onHorizontalDragUpdate: (details) {
                               final box = context.findRenderObject() as RenderBox?;
                               if (box != null && _totalDuration.inMilliseconds > 0) {
@@ -1656,24 +1817,77 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                                 final totalWidth = box.size.width - 24;
                                 final ratio = (tapPos / totalWidth).clamp(0.0, 1.0);
                                 final seekMs = (ratio * _totalDuration.inMilliseconds).toInt();
-                                _videoController?.seekTo(Duration(milliseconds: seekMs));
                                 _currentPosition = Duration(milliseconds: seekMs);
                                 _currentProgress = ratio;
                                 _positionNotifier.value = _currentPosition;
                                 _progressNotifier.value = ratio;
+                              }
+                            },
+                            onHorizontalDragEnd: (details) {
+                              _isScrubbing = false;
+                              if (_videoController != null && _totalDuration.inMilliseconds > 0) {
+                                _videoController!.seekTo(_currentPosition);
+                                if (_currentPosition < _totalDuration - const Duration(seconds: 2)) {
+                                  _hasTriggeredCompletion = false;
+                                }
+                              }
+                              if (_isPlaying) _scheduleHideControls();
+                            },
+                            onTapDown: (details) {
+                              final box = context.findRenderObject() as RenderBox?;
+                              if (box != null && _totalDuration.inMilliseconds > 0) {
+                                final tapPos = details.localPosition.dx;
+                                final totalWidth = box.size.width - 24;
+                                final ratio = (tapPos / totalWidth).clamp(0.0, 1.0);
+                                final seekMs = (ratio * _totalDuration.inMilliseconds).toInt();
+                                final newDur = Duration(milliseconds: seekMs);
+                                _currentPosition = newDur;
+                                _currentProgress = ratio;
+                                _positionNotifier.value = newDur;
+                                _progressNotifier.value = ratio;
+                                _videoController?.seekTo(newDur);
+                                if (newDur < _totalDuration - const Duration(seconds: 2)) {
+                                  _hasTriggeredCompletion = false;
+                                }
                                 if (_isPlaying) _scheduleHideControls();
                               }
                             },
-                            child: ValueListenableBuilder<double>(
-                              valueListenable: _progressNotifier,
-                              builder: (context, progress, _) {
-                                return LinearProgressIndicator(
-                                  value: progress,
-                                  backgroundColor: Colors.white.withValues(alpha: 0.3),
-                                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryYellow),
-                                  minHeight: 4,
-                                );
-                              },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: SizedBox(
+                                height: 5,
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    // Buffered preload background track
+                                    ValueListenableBuilder<double>(
+                                      valueListenable: _bufferedProgressNotifier,
+                                      builder: (context, buffered, _) {
+                                        return LinearProgressIndicator(
+                                          value: buffered,
+                                          backgroundColor: Colors.white.withValues(alpha: 0.2),
+                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                            Colors.white.withValues(alpha: 0.4),
+                                          ),
+                                          minHeight: 5,
+                                        );
+                                      },
+                                    ),
+                                    // Active playback head
+                                    ValueListenableBuilder<double>(
+                                      valueListenable: _progressNotifier,
+                                      builder: (context, progress, _) {
+                                        return LinearProgressIndicator(
+                                          value: progress,
+                                          backgroundColor: Colors.transparent,
+                                          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryYellow),
+                                          minHeight: 5,
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
                         ],
