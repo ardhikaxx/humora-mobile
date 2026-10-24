@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/faq_data.dart';
@@ -27,6 +28,31 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final Uri uri = Uri.parse(url);
+    try {
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Tidak dapat membuka $url'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Terjadi kesalahan: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -335,9 +361,12 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                           ),
                           const SizedBox(height: 14),
 
-                          // WhatsApp Card
-                          Container(
-                            padding: const EdgeInsets.all(14),
+                          // Telepon Card
+                          InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () => _launchUrl('tel:02174632082'),
+                            child: Container(
+                              padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
                               color: const Color(0xFFECFDF5),
                               borderRadius: BorderRadius.circular(16),
@@ -353,7 +382,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(
-                                    LucideIcons.messageCircle,
+                                    LucideIcons.phone,
                                     color: Color(0xFF059669),
                                     size: 18,
                                   ),
@@ -364,7 +393,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'WhatsApp Support',
+                                        'Telepon Support',
                                         style: TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w700,
@@ -373,7 +402,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                                       ),
                                       SizedBox(height: 1),
                                       Text(
-                                        '+62 812-9988-7766',
+                                        '02174632082',
                                         style: TextStyle(
                                           fontSize: 11.5,
                                           color: Color(0xFF047857),
@@ -390,11 +419,15 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                               ],
                             ),
                           ),
+                          ),
                           const SizedBox(height: 10),
 
                           // Email Card
-                          Container(
-                            padding: const EdgeInsets.all(14),
+                          InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () => _launchUrl('mailto:marketing@globalmc.co.id'),
+                            child: Container(
+                              padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
                               color: AppColors.accentPurpleSoft.withValues(alpha: 0.5),
                               borderRadius: BorderRadius.circular(16),
@@ -430,7 +463,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                                       ),
                                       SizedBox(height: 1),
                                       Text(
-                                        'support@humora.id',
+                                        'marketing@globalmc.co.id',
                                         style: TextStyle(
                                           fontSize: 11.5,
                                           color: AppColors.textSecondary,
@@ -446,6 +479,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                                 ),
                               ],
                             ),
+                          ),
                           ),
                         ],
                       ),
