@@ -1,14 +1,20 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'package:audio_session/audio_session.dart';
+import 'package:auto_orientation/auto_orientation.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_timer_countdown/flutter_timer_countdown.dart';
+import 'package:like_button/like_button.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/network/api_config.dart';
 import '../../core/network/api_service.dart';
+import '../../core/services/download_service.dart';
 import '../../core/services/humora_cache_service.dart';
 import '../../core/services/vibration_service.dart';
 import '../../core/services/wakelock_service.dart';
@@ -69,6 +75,27 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   bool _isScrubbing = false;
   final ApiService _apiService = ApiService();
 
+  // Feature: audio_session (Automatic audio focus management)
+  AudioSession? _audioSession;
+  StreamSubscription<void>? _noisySubscription;
+  StreamSubscription<AudioInterruptionEvent>? _interruptionSubscription;
+
+  // Feature: auto_orientation (Full Screen mode)
+  bool _isFullScreen = false;
+
+  // Feature: double_tap_to_seek (Animated ripple indicators)
+  bool _showRewindIndicator = false;
+  bool _showForwardIndicator = false;
+  Timer? _seekIndicatorTimer;
+
+  // Feature: flutter_timer_countdown (Next episode countdown)
+  bool _showNextEpisodeCountdown = false;
+  EpisodeModel? _countdownNextEpisode;
+  DateTime? _countdownEndTime;
+
+  // Feature: background_downloader (Local file offline check)
+  bool _isDownloadedLocally = false;
+
   @override
   void initState() {
     super.initState();
@@ -77,6 +104,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     _isControllerInitializing = true;
     _showControls = true;
     _startLikeSyncTimer();
+    _initAudioSession();
+    _checkOfflineStatus();
+    DownloadService().progressNotifier.addListener(_checkOfflineStatus);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted || _isDisposed || _isPopping) return;
       final seriesProv = context.read<SeriesProvider>();
@@ -129,6 +159,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   void dispose() {
     _isDisposed = true;
     _isPopping = true;
+    if (_isFullScreen) {
+      AutoOrientation.portraitAutoMode();
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
+    DownloadService().progressNotifier.removeListener(_checkOfflineStatus);
+    _seekIndicatorTimer?.cancel();
+    _noisySubscription?.cancel();
+    _interruptionSubscription?.cancel();
+    _audioSession?.setActive(false);
     routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     _heartbeatTimer?.cancel();
@@ -143,6 +182,101 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     _bufferedProgressNotifier.dispose();
     _disposePlayer();
     super.dispose();
+  }
+
+  Future<void> _initAudioSession() async {
+    try {
+      _audioSession = await AudioSession.instance;
+      await _audioSession?.configure(const AudioSessionConfiguration.music());
+
+      _noisySubscription = _audioSession?.becomingNoisyEventStream.listen((_) {
+        debugPrint('[AudioSession] Headphone unplugged -> pausing video');
+        if (_isPlaying && _videoController != null && _videoController!.value.isPlaying) {
+          _stopVideoPlaybackOnly();
+        }
+      });
+
+      _interruptionSubscription = _audioSession?.interruptionEventStream.listen((event) {
+        debugPrint('[AudioSession] Interruption: begin=${event.begin}, type=${event.type}');
+        if (event.begin) {
+          switch (event.type) {
+            case AudioInterruptionType.duck:
+              _videoController?.setVolume(0.2);
+              break;
+            case AudioInterruptionType.pause:
+            case AudioInterruptionType.unknown:
+              if (_isPlaying && _videoController != null && _videoController!.value.isPlaying) {
+                _stopVideoPlaybackOnly();
+              }
+              break;
+          }
+        } else {
+          switch (event.type) {
+            case AudioInterruptionType.duck:
+              _videoController?.setVolume(1.0);
+              break;
+            case AudioInterruptionType.pause:
+            case AudioInterruptionType.unknown:
+              break;
+          }
+        }
+      });
+    } catch (e) {
+      debugPrint('[AudioSession] Error setting up audio session: $e');
+    }
+  }
+
+  void _triggerSeekIndicator({required bool isForward}) {
+    _seekIndicatorTimer?.cancel();
+    _safeSetState(() {
+      if (isForward) {
+        _showForwardIndicator = true;
+        _showRewindIndicator = false;
+      } else {
+        _showForwardIndicator = false;
+        _showRewindIndicator = true;
+      }
+    });
+    _seekIndicatorTimer = Timer(const Duration(milliseconds: 700), () {
+      if (mounted && !_isDisposed) {
+        _safeSetState(() {
+          _showForwardIndicator = false;
+          _showRewindIndicator = false;
+        });
+      }
+    });
+  }
+
+  void _toggleFullScreen() {
+    _safeSetState(() {
+      _isFullScreen = !_isFullScreen;
+    });
+    if (_isFullScreen) {
+      AutoOrientation.landscapeAutoMode();
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    } else {
+      AutoOrientation.portraitAutoMode();
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
+  }
+
+  Future<void> _checkOfflineStatus() async {
+    try {
+      final seriesProv = context.read<SeriesProvider>();
+      final series = seriesProv.getSeriesById(widget.seriesId) ?? seriesProv.featuredSeries;
+      if (series.episodes.isNotEmpty) {
+        final ep = series.episodes.firstWhere(
+          (e) => e.episodeNumber == _currentEpisodeNumber,
+          orElse: () => series.episodes.first,
+        );
+        final isDownloaded = await DownloadService().isEpisodeDownloaded(ep.id);
+        if (mounted && !_isDisposed && _isDownloadedLocally != isDownloaded) {
+          _safeSetState(() {
+            _isDownloadedLocally = isDownloaded;
+          });
+        }
+      }
+    } catch (_) {}
   }
 
   void _startLikeSyncTimer() {
@@ -185,6 +319,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   /// Safely stops playback when navigating away or unmounting without calling setState during build
   void _stopVideo() {
     _isPopping = true;
+    if (_isFullScreen) {
+      AutoOrientation.portraitAutoMode();
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
+    _showNextEpisodeCountdown = false;
     _heartbeatTimer?.cancel();
     _sendViewingHeartbeat();
     _hideControlsTimer?.cancel();
@@ -367,11 +506,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
           }
         });
       } else {
-        // Next video is accessible: auto transition to next episode
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && !_isPopping && !_isDisposed) {
-            _playEpisode(nextEp.episodeNumber);
-          }
+        // Next video is accessible: Show 5-second auto-play countdown (Netflix/YouTube style)
+        _stopVideoPlaybackOnly();
+        _safeSetState(() {
+          _showNextEpisodeCountdown = true;
+          _countdownNextEpisode = nextEp;
+          _countdownEndTime = DateTime.now().add(const Duration(seconds: 5));
         });
       }
     } else {
@@ -462,7 +602,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       VideoPlayerController newController;
       File? localCachedFile;
 
-      if (streamUrl.startsWith('http://') || streamUrl.startsWith('https://')) {
+      // 1. Check if episode is downloaded offline via background_downloader
+      final offlineFile = await DownloadService().getOfflineVideoFile(episode.id);
+      if (offlineFile != null && await offlineFile.exists() && (await offlineFile.length()) > 1024) {
+        localCachedFile = offlineFile;
+        debugPrint('HUMORA VIDEO STREAM: Playing from offline downloaded video storage');
+      } else if (streamUrl.startsWith('http://') || streamUrl.startsWith('https://')) {
         localCachedFile = await HumoraCacheService.getCachedVideoFile(streamUrl);
       }
 
@@ -739,10 +884,14 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _showControls = true;
       _isControllerInitializing = true;
       _hasVideoError = false;
+      _showNextEpisodeCountdown = false;
+      _countdownNextEpisode = null;
+      _countdownEndTime = null;
     });
 
     _initializeVideoPlayer();
     _triggerLikeSync();
+    _checkOfflineStatus();
   }
 
   void _togglePlayPause() {
@@ -760,6 +909,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
         _showControls = true;
       });
     } else {
+      _audioSession?.setActive(true);
       _videoController!.play();
       WakelockService.enable();
       _safeSetState(() {
@@ -782,6 +932,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     );
     if (clamped < _totalDuration - const Duration(seconds: 2)) {
       _hasTriggeredCompletion = false;
+      _showNextEpisodeCountdown = false;
     }
     _videoController!.seekTo(clamped);
     _currentPosition = clamped;
@@ -832,9 +983,37 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
     final isEpLiked = seriesProv.isEpisodeLiked(currentEpisode.id);
 
+    // If fullscreen is active, fill entire display in landscape mode without top/bottom bars
+    if (_isFullScreen) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop) {
+            _toggleFullScreen();
+          }
+        },
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: SizedBox.expand(
+            child: _buildVideoPlayerSection(
+              context,
+              series,
+              currentEpisode,
+              nextEpisode,
+              isFullScreen: true,
+            ),
+          ),
+        ),
+      );
+    }
+
     return PopScope(
-      canPop: true,
+      canPop: !_isFullScreen,
       onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _isFullScreen) {
+          _toggleFullScreen();
+          return;
+        }
         if (didPop) {
           _isPopping = true;
           _stopVideo();
@@ -956,58 +1135,80 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
               ),
               const SizedBox(height: 14),
 
-              // Likes and Feedback Row
+              // Likes and Offline Download Row
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
-                    GestureDetector(
-                      onTap: () async {
-                        VibrationService.lightImpact();
-                        final willLike = !seriesProv.isEpisodeLiked(currentEpisode.id);
-                        final success = await seriesProv.toggleEpisodeLike(currentEpisode.id);
-                        if (!context.mounted) return;
-                        if (success) {
-                          _triggerLikeSync();
-                          HumoraToast.showLike(
-                            context,
-                            isLiked: willLike,
-                            targetTitle: currentEpisode.title,
-                            isSeries: false,
-                          );
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: isEpLiked ? const Color(0xFFFEE2E2) : AppColors.surface,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: isEpLiked ? const Color(0xFFFCA5A5) : AppColors.border,
-                            width: 1.2,
-                          ),
+                    // Feature: like_button (Particle bubble burst animation)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isEpLiked ? const Color(0xFFFEE2E2) : AppColors.surface,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isEpLiked ? const Color(0xFFFCA5A5) : AppColors.border,
+                          width: 1.2,
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              LucideIcons.heart,
-                              size: 16,
-                              color: isEpLiked ? const Color(0xFFEF4444) : AppColors.textSecondary,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              isEpLiked ? 'Disukai' : currentEpisode.likes,
+                      ),
+                      child: LikeButton(
+                        size: 20,
+                        isLiked: isEpLiked,
+                        likeCount: int.tryParse(currentEpisode.likes.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
+                        circleColor: const CircleColor(
+                          start: Color(0xFFFF5252),
+                          end: Color(0xFFFF1744),
+                        ),
+                        bubblesColor: const BubblesColor(
+                          dotPrimaryColor: Color(0xFFFF5252),
+                          dotSecondaryColor: Color(0xFFFFD700),
+                          dotThirdColor: Color(0xFFFF4081),
+                          dotLastColor: Color(0xFFFFAB00),
+                        ),
+                        likeBuilder: (bool isLiked) {
+                          return Icon(
+                            LucideIcons.heart,
+                            size: 16,
+                            color: isLiked ? const Color(0xFFEF4444) : AppColors.textSecondary,
+                          );
+                        },
+                        countBuilder: (int? count, bool isLiked, String text) {
+                          return Padding(
+                            padding: const EdgeInsets.only(left: 6),
+                            child: Text(
+                              isLiked ? 'Disukai' : (count != null && count > 0 ? '$count' : currentEpisode.likes),
                               style: TextStyle(
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w700,
-                                color: isEpLiked ? const Color(0xFFEF4444) : AppColors.textPrimary,
+                                color: isLiked ? const Color(0xFFEF4444) : AppColors.textPrimary,
                               ),
                             ),
-                          ],
-                        ),
+                          );
+                        },
+                        onTap: (bool isLiked) async {
+                          VibrationService.lightImpact();
+                          final willLike = !isLiked;
+                          final success = await seriesProv.toggleEpisodeLike(currentEpisode.id);
+                          if (!context.mounted) return isLiked;
+                          if (success) {
+                            _triggerLikeSync();
+                            HumoraToast.showLike(
+                              context,
+                              isLiked: willLike,
+                              targetTitle: currentEpisode.title,
+                              isSeries: false,
+                            );
+                            return willLike;
+                          }
+                          return isLiked;
+                        },
                       ),
                     ),
+
+                    const SizedBox(width: 10),
+
+                    // Feature: background_downloader (Save comedy video for offline enjoyment)
+                    _buildOfflineDownloadButton(currentEpisode),
                   ],
                 ),
               ),
@@ -1365,22 +1566,232 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     );
   }
 
+  Widget _buildOfflineDownloadButton(EpisodeModel currentEpisode) {
+    return ValueListenableBuilder<Map<String, double>>(
+      valueListenable: DownloadService().progressNotifier,
+      builder: (context, progressMap, _) {
+        final taskId = DownloadService.getTaskId(currentEpisode.id);
+        final isDownloading = progressMap.containsKey(taskId);
+        final downloadProgress = progressMap[taskId] ?? 0.0;
+
+        if (_isDownloadedLocally) {
+          return GestureDetector(
+            onTap: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  backgroundColor: AppColors.surface,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  title: const Text('Hapus Video Offline?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                  content: const Text(
+                    'Video ini telah tersimpan di perangkat. Hapus video untuk menghemat ruang penyimpanan?',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Batal'),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFEF4444),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Hapus', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                await DownloadService().deleteDownloadedEpisode(currentEpisode.id);
+                await _checkOfflineStatus();
+                if (context.mounted) {
+                  HumoraToast.showSuccess(
+                    context,
+                    'Video offline berhasil dihapus dari perangkat.',
+                    title: 'Unduhan Dihapus',
+                  );
+                }
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE6F8F0),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.green.withValues(alpha: 0.4), width: 1.2),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(LucideIcons.checkCircle2, size: 16, color: AppColors.green),
+                  SizedBox(width: 6),
+                  Text(
+                    'Tersimpan Offline',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.green,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        if (isDownloading) {
+          final pct = (downloadProgress * 100).toInt();
+          return GestureDetector(
+            onTap: () async {
+              await DownloadService().cancelDownload(currentEpisode.id);
+              if (context.mounted) {
+                HumoraToast.showInfo(
+                  context,
+                  'Unduhan episode komedi telah dibatalkan.',
+                  title: 'Unduhan Dibatalkan',
+                );
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.yellowSoft,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFF59E0B), width: 1.2),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Color(0xFFD97706),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Mengunduh ($pct%)',
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFFD97706),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return GestureDetector(
+          onTap: () async {
+            VibrationService.lightImpact();
+            final auth = context.read<AuthProvider>();
+            final seriesProv = context.read<SeriesProvider>();
+            final series = seriesProv.getSeriesById(widget.seriesId) ?? seriesProv.featuredSeries;
+
+            if (!auth.canAccessEpisode(
+              currentEpisode.episodeNumber,
+              episodeId: int.tryParse(currentEpisode.id),
+              seriesTotalEpisodes: series.episodes.length,
+              isFreeEpisode: currentEpisode.isFree,
+            )) {
+              PaywallModal.show(context);
+              return;
+            }
+
+            String streamUrl = '${ApiConfig.baseUrl}/files/stream/${currentEpisode.id}';
+            if (currentEpisode.streamUrl != null && currentEpisode.streamUrl!.isNotEmpty) {
+              final parsed = Uri.tryParse(currentEpisode.streamUrl!);
+              if (parsed != null && parsed.hasScheme) {
+                final baseUri = Uri.parse(ApiConfig.baseUrl);
+                if (parsed.host == 'localhost' || parsed.host == '127.0.0.1') {
+                  streamUrl = parsed.replace(
+                    scheme: baseUri.scheme,
+                    host: baseUri.host,
+                    port: baseUri.hasPort ? baseUri.port : null,
+                  ).toString();
+                } else {
+                  streamUrl = currentEpisode.streamUrl!;
+                }
+              }
+            }
+
+            final token = await ApiService().getToken();
+            final headers = <String, String>{
+              'Accept': 'video/webm,video/mp4,video/*;q=0.9,*/*;q=0.8',
+              if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+            };
+
+            final started = await DownloadService().startDownload(
+              episodeId: currentEpisode.id,
+              url: streamUrl,
+              episodeTitle: 'Video ${currentEpisode.episodeNumber}: ${currentEpisode.title}',
+              headers: headers,
+            );
+
+            if (context.mounted) {
+              if (started) {
+                HumoraToast.showSuccess(
+                  context,
+                  'Episode sedang diunduh di latar belakang.',
+                  title: 'Mengunduh Video',
+                );
+              } else {
+                HumoraToast.showError(
+                  context,
+                  'Gagal memulai unduhan video.',
+                  title: 'Unduhan Gagal',
+                );
+              }
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.border, width: 1.2),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(LucideIcons.download, size: 16, color: AppColors.textSecondary),
+                SizedBox(width: 6),
+                Text(
+                  'Unduh Offline',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildVideoPlayerSection(
     BuildContext context,
     dynamic series,
     EpisodeModel currentEpisode,
-    EpisodeModel? nextEpisode,
-  ) {
+    EpisodeModel? nextEpisode, {
+    bool isFullScreen = false,
+  }) {
     return Container(
-      height: 240,
+      height: isFullScreen ? double.infinity : 240,
       width: double.infinity,
       color: Colors.black,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: _toggleControls,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
             // 1. Real VideoPlayer (isolated with RepaintBoundary for GPU optimization) or Thumbnail Still
             if (_videoController != null && _videoController!.value.isInitialized)
               RepaintBoundary(
@@ -1397,6 +1808,104 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
               HumoraImage(
                 imagePathOrUrl: currentEpisode.thumbnailPath,
                 fit: BoxFit.cover,
+              ),
+
+            // Feature: double_tap_to_seek (YouTube style transparent left/right gesture zones)
+            Positioned.fill(
+              child: Row(
+                children: [
+                  // Left 42%: Double tap rewind 10 seconds
+                  Expanded(
+                    flex: 42,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTap: _toggleControls,
+                      onDoubleTap: () {
+                        _seekRelative(-10);
+                        _triggerSeekIndicator(isForward: false);
+                      },
+                    ),
+                  ),
+                  // Middle 16%: Single tap toggle controls
+                  Expanded(
+                    flex: 16,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTap: _toggleControls,
+                    ),
+                  ),
+                  // Right 42%: Double tap forward 10 seconds
+                  Expanded(
+                    flex: 42,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTap: _toggleControls,
+                      onDoubleTap: () {
+                        _seekRelative(10);
+                        _triggerSeekIndicator(isForward: true);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Animated Double-tap Seek Indicator (Left: -10s)
+            if (_showRewindIndicator)
+              Positioned(
+                left: 36,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.75),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white24, width: 1),
+                    ),
+                    child: const Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(LucideIcons.rotateCcw, color: AppColors.primaryYellow, size: 28),
+                        SizedBox(height: 6),
+                        Text(
+                          '-10 Detik',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+            // Animated Double-tap Seek Indicator (Right: +10s)
+            if (_showForwardIndicator)
+              Positioned(
+                right: 36,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.75),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white24, width: 1),
+                    ),
+                    child: const Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(LucideIcons.rotateCw, color: AppColors.primaryYellow, size: 28),
+                        SizedBox(height: 6),
+                        Text(
+                          '+10 Detik',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
 
             // 2. Loading Spinner or Error State
@@ -1568,17 +2077,21 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                   fit: StackFit.expand,
                   children: [
                     // Dark Overlay Gradient
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withValues(alpha: 0.65),
-                            Colors.transparent,
-                            Colors.black.withValues(alpha: 0.85),
-                          ],
-                          stops: const [0.0, 0.45, 1.0],
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _toggleControls,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.65),
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.85),
+                            ],
+                            stops: const [0.0, 0.45, 1.0],
+                          ),
                         ),
                       ),
                     ),
@@ -1592,6 +2105,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                         children: [
                           GestureDetector(
                             onTap: () {
+                              if (_isFullScreen) {
+                                _toggleFullScreen();
+                                return;
+                              }
                               _isPopping = true;
                               _stopVideo();
                               Navigator.of(context).pop();
@@ -1788,6 +2305,23 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                                         ),
                                       ),
                                     ),
+                                  const SizedBox(width: 8),
+                                  // Feature: auto_orientation Fullscreen toggle button
+                                  GestureDetector(
+                                    onTap: _toggleFullScreen,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(5),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withValues(alpha: 0.6),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Icon(
+                                        _isFullScreen ? LucideIcons.minimize : LucideIcons.maximize,
+                                        size: 13,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
                                 ],
                               ),
                             ],
@@ -1887,9 +2421,147 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                 ),
               ),
             ),
+
+            // Feature: flutter_timer_countdown (Next Episode 5-second Auto-play Countdown Card)
+            if (_showNextEpisodeCountdown && _countdownNextEpisode != null && _countdownEndTime != null)
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 16,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.92),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.primaryYellow, width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.7),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: SizedBox(
+                              width: 52,
+                              height: 36,
+                              child: HumoraImage(
+                                imagePathOrUrl: _countdownNextEpisode!.thumbnailPath,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Episode Berikutnya Putar Dalam:',
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Video ${_countdownNextEpisode!.episodeNumber}: ${_countdownNextEpisode!.title}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryYellow.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppColors.primaryYellow, width: 1),
+                            ),
+                            child: TimerCountdown(
+                              format: CountDownTimerFormat.secondsOnly,
+                              endTime: _countdownEndTime!,
+                              timeTextStyle: const TextStyle(
+                                color: AppColors.primaryYellow,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 14,
+                              ),
+                              onEnd: () {
+                                if (mounted && _showNextEpisodeCountdown && _countdownNextEpisode != null) {
+                                  final nextNum = _countdownNextEpisode!.episodeNumber;
+                                  _safeSetState(() {
+                                    _showNextEpisodeCountdown = false;
+                                    _countdownNextEpisode = null;
+                                    _countdownEndTime = null;
+                                  });
+                                  _playEpisode(nextNum);
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () {
+                              _safeSetState(() {
+                                _showNextEpisodeCountdown = false;
+                                _countdownNextEpisode = null;
+                                _countdownEndTime = null;
+                              });
+                            },
+                            style: TextButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              foregroundColor: Colors.white70,
+                            ),
+                            child: const Text('Batal', style: TextStyle(fontSize: 12)),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              final nextNum = _countdownNextEpisode!.episodeNumber;
+                              _safeSetState(() {
+                                _showNextEpisodeCountdown = false;
+                                _countdownNextEpisode = null;
+                                _countdownEndTime = null;
+                              });
+                              _playEpisode(nextNum);
+                            },
+                            icon: const Icon(LucideIcons.play, size: 14),
+                            label: const Text('Putar Sekarang', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryYellow,
+                              foregroundColor: AppColors.primaryDark,
+                              visualDensity: VisualDensity.compact,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
-      ),
     );
   }
 }

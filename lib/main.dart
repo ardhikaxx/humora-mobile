@@ -1,10 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'core/network/api_config.dart';
 import 'core/theme/app_theme.dart';
+import 'core/services/download_service.dart';
 import 'core/services/local_notification_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/series_provider.dart';
@@ -28,6 +31,9 @@ void main() async {
   // Initialize Local Notifications and schedule daily reminder
   await LocalNotificationService.initialize();
   await LocalNotificationService.scheduleDailyComedyReminder();
+
+  // Initialize background downloader service
+  DownloadService().initialize();
 
   // Set system UI overlay style to match Humora theme
   SystemChrome.setSystemUIOverlayStyle(
@@ -64,13 +70,24 @@ class HumoraApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Humora',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      scrollBehavior: const MaterialScrollBehavior().copyWith(dragDevices: {PointerDeviceKind.mouse, PointerDeviceKind.touch, PointerDeviceKind.stylus, PointerDeviceKind.trackpad}),
-      navigatorObservers: [routeObserver],
-      home: const MainNavigationShell(),
+    return ScreenUtilInit(
+      designSize: const Size(375, 812),
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (context, child) {
+        return KeyboardDismissOnTap(
+          child: MaterialApp(
+            title: 'Humora',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            scrollBehavior: const MaterialScrollBehavior().copyWith(
+              dragDevices: {PointerDeviceKind.mouse, PointerDeviceKind.touch, PointerDeviceKind.stylus, PointerDeviceKind.trackpad},
+            ),
+            navigatorObservers: [routeObserver],
+            home: const MainNavigationShell(),
+          ),
+        );
+      },
     );
   }
 }
