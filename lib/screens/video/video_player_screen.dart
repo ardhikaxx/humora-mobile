@@ -2476,61 +2476,135 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
               ),
             ),
 
-            // Feature: flutter_timer_countdown (Next Episode 5-second Auto-play Countdown Card)
+            // Feature: flutter_timer_countdown (Next Episode Modern Floating Auto-play Countdown Pill)
             if (_showNextEpisodeCountdown && _countdownNextEpisode != null && _countdownEndTime != null)
               Positioned(
-                left: 16,
-                right: 16,
-                bottom: 16,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.92),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.primaryYellow, width: 1.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.7),
-                        blurRadius: 16,
-                        offset: const Offset(0, 4),
+                left: 12,
+                right: 12,
+                bottom: 12,
+                child: Align(
+                  alignment: _isFullScreen ? Alignment.bottomRight : Alignment.bottomCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.88),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
+                      child: Row(
                         children: [
+                          // Mini Episode Preview Thumbnail with subtle play watermark
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: SizedBox(
-                              width: 52,
-                              height: 36,
-                              child: HumoraImage(
-                                imagePathOrUrl: _countdownNextEpisode!.thumbnailPath,
-                                fit: BoxFit.cover,
+                              width: 50,
+                              height: 34,
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  HumoraImage(
+                                    imagePathOrUrl: _countdownNextEpisode!.thumbnailPath,
+                                    fit: BoxFit.cover,
+                                  ),
+                                  Container(
+                                    color: Colors.black.withValues(alpha: 0.25),
+                                  ),
+                                  const Center(
+                                    child: Icon(
+                                      LucideIcons.play,
+                                      size: 13,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
                           const SizedBox(width: 10),
+
+                          // Next Episode title + TimerCountdown
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Text(
-                                  'Episode Berikutnya Putar Dalam:',
-                                  style: TextStyle(
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white70,
-                                  ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Putar berikutnya ',
+                                      style: TextStyle(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.white.withValues(alpha: 0.7),
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primaryYellow.withValues(alpha: 0.16),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(
+                                          color: AppColors.primaryYellow.withValues(alpha: 0.35),
+                                          width: 0.8,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          TimerCountdown(
+                                            format: CountDownTimerFormat.secondsOnly,
+                                            enableDescriptions: false,
+                                            endTime: _countdownEndTime!,
+                                            timeTextStyle: const TextStyle(
+                                              color: AppColors.primaryYellow,
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 10.5,
+                                              height: 1.1,
+                                            ),
+                                            onEnd: () {
+                                              if (mounted && _showNextEpisodeCountdown && _countdownNextEpisode != null) {
+                                                final nextNum = _countdownNextEpisode!.episodeNumber;
+                                                _safeSetState(() {
+                                                  _showNextEpisodeCountdown = false;
+                                                  _countdownNextEpisode = null;
+                                                  _countdownEndTime = null;
+                                                });
+                                                _playEpisode(nextNum);
+                                              }
+                                            },
+                                          ),
+                                          const Text(
+                                            's',
+                                            style: TextStyle(
+                                              color: AppColors.primaryYellow,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 10,
+                                              height: 1.1,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
                                   'Video ${_countdownNextEpisode!.episodeNumber}: ${_countdownNextEpisode!.title}',
                                   style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
                                     color: Colors.white,
                                   ),
                                   maxLines: 1,
@@ -2540,57 +2614,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryYellow.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppColors.primaryYellow, width: 1),
-                            ),
-                            child: TimerCountdown(
-                              format: CountDownTimerFormat.secondsOnly,
-                              endTime: _countdownEndTime!,
-                              timeTextStyle: const TextStyle(
-                                color: AppColors.primaryYellow,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 14,
-                              ),
-                              onEnd: () {
-                                if (mounted && _showNextEpisodeCountdown && _countdownNextEpisode != null) {
-                                  final nextNum = _countdownNextEpisode!.episodeNumber;
-                                  _safeSetState(() {
-                                    _showNextEpisodeCountdown = false;
-                                    _countdownNextEpisode = null;
-                                    _countdownEndTime = null;
-                                  });
-                                  _playEpisode(nextNum);
-                                }
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton(
-                            onPressed: () {
-                              _safeSetState(() {
-                                _showNextEpisodeCountdown = false;
-                                _countdownNextEpisode = null;
-                                _countdownEndTime = null;
-                              });
-                            },
-                            style: TextButton.styleFrom(
-                              visualDensity: VisualDensity.compact,
-                              foregroundColor: Colors.white70,
-                            ),
-                            child: const Text('Batal', style: TextStyle(fontSize: 12)),
-                          ),
-                          const SizedBox(width: 8),
-                          ElevatedButton.icon(
-                            onPressed: () {
+
+                          // Quick "Putar" Pill Button
+                          GestureDetector(
+                            onTap: () {
                               final nextNum = _countdownNextEpisode!.episodeNumber;
                               _safeSetState(() {
                                 _showNextEpisodeCountdown = false;
@@ -2599,18 +2626,58 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                               });
                               _playEpisode(nextNum);
                             },
-                            icon: const Icon(LucideIcons.play, size: 14),
-                            label: const Text('Putar Sekarang', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryYellow,
-                              foregroundColor: AppColors.primaryDark,
-                              visualDensity: VisualDensity.compact,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryYellow,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(LucideIcons.play, size: 11, color: AppColors.primaryDark),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Putar',
+                                    style: TextStyle(
+                                      color: AppColors.primaryDark,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+
+                          // Minimalist "✕" Dismiss Button
+                          GestureDetector(
+                            onTap: () {
+                              _safeSetState(() {
+                                _showNextEpisodeCountdown = false;
+                                _countdownNextEpisode = null;
+                                _countdownEndTime = null;
+                              });
+                            },
+                            behavior: HitTestBehavior.opaque,
+                            child: Container(
+                              width: 26,
+                              height: 26,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.12),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                LucideIcons.x,
+                                size: 13,
+                                color: Colors.white70,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
