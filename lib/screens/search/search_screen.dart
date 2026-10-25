@@ -57,7 +57,12 @@ class _SearchScreenState extends State<SearchScreen> {
 
   void _openVideo(BuildContext context, _SearchVideoItem item, AuthProvider auth) {
     if (item.episode != null) {
-      final isLocked = item.episode!.isPremium && !auth.isPremium;
+      final isLocked = !auth.canAccessEpisode(
+        item.episode!.episodeNumber,
+        episodeId: int.tryParse(item.episode!.id),
+        seriesTotalEpisodes: item.series.totalEpisodes,
+        isFreeEpisode: item.episode!.isFree,
+      );
       if (isLocked) {
         PaywallModal.show(context);
         return;

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'package:audio_session/audio_session.dart';
-import 'package:auto_orientation/auto_orientation.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -160,7 +159,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     _isDisposed = true;
     _isPopping = true;
     if (_isFullScreen) {
-      AutoOrientation.portraitAutoMode();
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
     DownloadService().progressNotifier.removeListener(_checkOfflineStatus);
@@ -252,10 +251,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _isFullScreen = !_isFullScreen;
     });
     if (_isFullScreen) {
-      AutoOrientation.landscapeAutoMode();
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     } else {
-      AutoOrientation.portraitAutoMode();
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
   }
@@ -320,7 +322,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   void _stopVideo() {
     _isPopping = true;
     if (_isFullScreen) {
-      AutoOrientation.portraitAutoMode();
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
     _showNextEpisodeCountdown = false;
@@ -398,13 +400,22 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   }
 
   void _onVideoControllerUpdate() {
-    if (_videoController == null || !_videoController!.value.isInitialized || !mounted || _isDisposed || _isPopping) {
+    final controller = _videoController;
+    if (controller == null || !controller.value.isInitialized || !mounted || _isDisposed || _isPopping) {
       return;
     }
 
-    final val = _videoController!.value;
+    final val = controller.value;
     final pos = val.position;
     final dur = val.duration;
+
+    // Safety net: ensure loading spinner is removed once video has initialized and started playing
+    if (_isControllerInitializing && (val.isPlaying || pos.inMilliseconds > 0)) {
+      _safeSetState(() {
+        _isControllerInitializing = false;
+        _hasVideoError = false;
+      });
+    }
 
     // 1. Buffering state notifier
     if (_isBufferingNotifier.value != val.isBuffering) {
@@ -541,12 +552,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     final auth = context.read<AuthProvider>();
 
     // Paywall Check: Episode 3+ requires VIP status (or Ep 2 if series only has 2 episodes)
-    if (!auth.canAccessEpisode(
+    final canAccess = auth.canAccessEpisode(
       _currentEpisodeNumber,
       episodeId: int.tryParse(episode.id),
       seriesTotalEpisodes: series.episodes.length,
       isFreeEpisode: episode.isFree,
-    )) {
+    );
+
+    if (!canAccess) {
+      _stopVideoPlaybackOnly();
       _safeSetState(() {
         _hasVideoError = true;
         _isControllerInitializing = false;
@@ -596,13 +610,19 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
       debugPrint('HUMORA VIDEO STREAM: Connecting to $streamUrl');
 
+      // 1. Detach old controller listener & pause it while new one prepares
       final oldController = _videoController;
-      oldController?.removeListener(_onVideoControllerUpdate);
+      if (oldController != null) {
+        oldController.removeListener(_onVideoControllerUpdate);
+        try {
+          await oldController.pause();
+        } catch (_) {}
+      }
 
       VideoPlayerController newController;
       File? localCachedFile;
 
-      // 1. Check if episode is downloaded offline via background_downloader
+      // 2. Check if episode is downloaded offline via background_downloader
       final offlineFile = await DownloadService().getOfflineVideoFile(episode.id);
       if (offlineFile != null && await offlineFile.exists() && (await offlineFile.length()) > 1024) {
         localCachedFile = offlineFile;
@@ -626,22 +646,43 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       }
 
       await newController.initialize();
-      await oldController?.dispose();
 
       if (!mounted || _isDisposed || _isPopping) {
-        newController.dispose();
+        await newController.dispose();
         return;
       }
 
       _reconnectAttempts = 0; // Successfully connected
+
+      // 3. CRITICAL: Point _videoController to newController BEFORE adding listener or starting playback
+      _videoController = newController;
+      _totalDuration = newController.value.duration;
+
+      // 4. Attach update listener to newController
       newController.addListener(_onVideoControllerUpdate);
-      await newController.play();
-      WakelockService.enable();
+
+      // 5. Dispose old controller safely in background now that state references newController
+      if (oldController != null) {
+        try {
+          await oldController.dispose();
+        } catch (_) {}
+      }
 
       // If user had a prior playback position, seek to it
       if (_currentPosition.inSeconds > 0 && _currentPosition < newController.value.duration - const Duration(seconds: 3)) {
         await newController.seekTo(_currentPosition);
       }
+
+      // 6. Start playback
+      await newController.play();
+      WakelockService.enable();
+
+      _safeSetState(() {
+        _isControllerInitializing = false;
+        _hasVideoError = false;
+        _isPlaying = true;
+        _showControls = true;
+      });
 
       // Dual background caching:
       // A. Cache current streaming episode in background for instant replay & 0-data seeking
@@ -650,15 +691,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       }
       // B. Pre-cache next episode in background after current video is safely playing
       _schedulePreCacheNextEpisode(series, headers);
-
-      _safeSetState(() {
-        _videoController = newController;
-        _isControllerInitializing = false;
-        _hasVideoError = false;
-        _isPlaying = true;
-        _showControls = true;
-        _totalDuration = newController.value.duration;
-      });
 
       _scheduleHideControls();
       _sendViewingHeartbeat();
@@ -876,6 +908,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     _syncWatchHistory();
     _hasTriggeredCompletion = false;
     _reconnectAttempts = 0;
+
+    // Reset targeted notifiers immediately for clean UI transition
+    _positionNotifier.value = Duration.zero;
+    _progressNotifier.value = 0.0;
+    _bufferedProgressNotifier.value = 0.0;
+    _isBufferingNotifier.value = false;
 
     _safeSetState(() {
       _currentEpisodeNumber = episodeNumber;
@@ -1109,24 +1147,35 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: currentEpisode.isPremium && !auth.isPremium
-                                ? AppColors.yellowSoft
-                                : const Color(0xFFE6F8F0),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            currentEpisode.isPremium && !auth.isPremium ? 'VIP' : 'GRATIS',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: currentEpisode.isPremium && !auth.isPremium
-                                  ? const Color(0xFFD97706)
-                                  : AppColors.green,
-                            ),
-                          ),
+                        Builder(
+                          builder: (context) {
+                            final isCurrentLocked = !auth.canAccessEpisode(
+                              currentEpisode.episodeNumber,
+                              episodeId: int.tryParse(currentEpisode.id),
+                              seriesTotalEpisodes: series.episodes.length,
+                              isFreeEpisode: currentEpisode.isFree,
+                            );
+
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: isCurrentLocked
+                                    ? AppColors.yellowSoft
+                                    : const Color(0xFFE6F8F0),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                isCurrentLocked ? 'VIP' : 'GRATIS',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: isCurrentLocked
+                                      ? const Color(0xFFD97706)
+                                      : AppColors.green,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -1326,7 +1375,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
               ] else ...[
                 ...series.episodes.map((ep) {
                   final isCurrent = ep.episodeNumber == _currentEpisodeNumber;
-                  final isLocked = ep.isPremium && !auth.isPremium;
+                  final isLocked = !auth.canAccessEpisode(
+                    ep.episodeNumber,
+                    episodeId: int.tryParse(ep.id),
+                    seriesTotalEpisodes: series.episodes.length,
+                    isFreeEpisode: ep.isFree,
+                  );
 
                   return Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),

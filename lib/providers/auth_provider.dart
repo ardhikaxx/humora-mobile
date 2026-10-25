@@ -88,42 +88,44 @@ class AuthProvider extends ChangeNotifier {
     int? seriesTotalEpisodes,
     bool? isFreeEpisode,
   }) {
-    // 1. Free Trial Evaluation (Honoring explicit isFreeEpisode if provided)
-    if (isFreeEpisode != null) {
-      if (isFreeEpisode) {
-        return true;
-      }
-    } else {
-      final bool isFreeTrial;
-      if (seriesTotalEpisodes != null && seriesTotalEpisodes <= 2) {
-        isFreeTrial = episodeNumber <= 1;
-      } else {
-        isFreeTrial = episodeNumber <= 2;
-      }
-
-      if (isFreeTrial) {
-        return true;
-      }
+    // 1. Explicitly marked as free by backend resource
+    if (isFreeEpisode == true) {
+      return true;
     }
 
-    // 2. Must be logged in and active premium
+    // 2. HUMORA Free Trial Policy:
+    // - Standard series: Episode 1 & 2 are free preview/trial for all users.
+    // - Short series (explicitly having 1 or 2 episodes in total): only Episode 1 is free trial.
+    // NOTE: If seriesTotalEpisodes is not yet loaded (null or 0), default to Episode 1 & 2 free trial.
+    final bool isFreeTrial;
+    if (seriesTotalEpisodes != null && (seriesTotalEpisodes == 1 || seriesTotalEpisodes == 2)) {
+      isFreeTrial = episodeNumber <= 1;
+    } else {
+      isFreeTrial = episodeNumber <= 2;
+    }
+
+    if (isFreeTrial && isFreeEpisode != false) {
+      return true;
+    }
+
+    // 3. Locked / VIP episode (e.g. Episode 3+) requires active subscription / premium
     if (!isPremium) {
       return false;
     }
 
-    // 3. If user has active Full Access to whole catalog
+    // 4. If user has active Full Access to whole catalog
     if (_user.hasFullAccess) {
       return true;
     }
 
-    // 4. If specific episodeId is provided, check if it's in user's active quota
+    // 5. If specific episodeId is provided, check if it's in user's active quota
     if (episodeId != null && episodeId > 0) {
       if (_user.accessibleEpisodeIds.contains(episodeId)) {
         return true;
       }
     }
 
-    // 5. Fallback for demo/tier switching or legacy VIP without specific episode lists
+    // 6. Fallback for demo/tier switching or legacy VIP without specific episode lists
     if (_user.accessibleEpisodeIds.isEmpty && isPremium) {
       return true;
     }
