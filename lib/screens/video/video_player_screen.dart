@@ -1008,62 +1008,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-
-                    // Watchlist Pill
-                    GestureDetector(
-                      onTap: () {
-                        VibrationService.lightImpact();
-                        final isAdded = seriesProv.toggleWatchlist(widget.seriesId);
-                        HumoraToast.showWatchlist(
-                          context,
-                          isAdded: isAdded,
-                          seriesTitle: currentEpisode.title,
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: seriesProv.isSeriesInWatchlist(widget.seriesId)
-                              ? AppColors.yellowSoft
-                              : AppColors.surface,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: seriesProv.isSeriesInWatchlist(widget.seriesId)
-                                ? AppColors.primaryYellowDark
-                                : AppColors.border,
-                            width: 1.2,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              seriesProv.isSeriesInWatchlist(widget.seriesId)
-                                  ? LucideIcons.bookmarkCheck
-                                  : LucideIcons.bookmark,
-                              size: 15,
-                              color: seriesProv.isSeriesInWatchlist(widget.seriesId)
-                                  ? AppColors.primaryYellowDark
-                                  : AppColors.textSecondary,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              seriesProv.isSeriesInWatchlist(widget.seriesId)
-                                  ? 'Tersimpan'
-                                  : 'Daftar Tonton',
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w700,
-                                color: seriesProv.isSeriesInWatchlist(widget.seriesId)
-                                    ? AppColors.primaryDark
-                                    : AppColors.textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),

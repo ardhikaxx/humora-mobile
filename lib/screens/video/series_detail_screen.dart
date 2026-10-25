@@ -146,62 +146,6 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                         ),
                         const SizedBox(width: 8),
 
-                        // Watchlist Pill
-                        GestureDetector(
-                          onTap: () {
-                            VibrationService.lightImpact();
-                            final isAdded = seriesProv.toggleWatchlist(series.id);
-                            HumoraToast.showWatchlist(
-                              context,
-                              isAdded: isAdded,
-                              seriesTitle: series.title,
-                            );
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: seriesProv.isSeriesInWatchlist(series.id)
-                                  ? AppColors.yellowSoft
-                                  : AppColors.surface,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: seriesProv.isSeriesInWatchlist(series.id)
-                                    ? AppColors.primaryYellowDark
-                                    : AppColors.border,
-                                width: 1.0,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  seriesProv.isSeriesInWatchlist(series.id)
-                                      ? LucideIcons.bookmarkCheck
-                                      : LucideIcons.bookmark,
-                                  size: 13,
-                                  color: seriesProv.isSeriesInWatchlist(series.id)
-                                      ? AppColors.primaryYellowDark
-                                      : AppColors.textSecondary,
-                                ),
-                                const SizedBox(width: 5),
-                                Text(
-                                  seriesProv.isSeriesInWatchlist(series.id)
-                                      ? 'Tersimpan'
-                                      : 'Daftar Tonton',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: seriesProv.isSeriesInWatchlist(series.id)
-                                        ? AppColors.primaryDark
-                                        : AppColors.textPrimary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-
                         // Videos Count Pill
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),

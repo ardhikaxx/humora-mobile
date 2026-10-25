@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ApiConfig {
   static const String _keyBaseUrl = 'humora_api_base_url';
 
-  static const String defaultBaseUrl = 'http://192.168.1.4:8000/api/v1';
+  static const String defaultBaseUrl = 'http://192.168.1.3:8000/api/v1';
 
   static String _currentBaseUrl = defaultBaseUrl;
 
