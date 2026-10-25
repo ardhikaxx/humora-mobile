@@ -98,5 +98,33 @@ void main() {
       expect(find.byType(TimerCountdown), findsOneWidget);
       expect(ended, isFalse);
     });
+
+    testWidgets('TimerCountdown renders modern seconds-only format without descriptions', (WidgetTester tester) async {
+      bool ended = false;
+      final targetTime = DateTime.now().add(const Duration(seconds: 5));
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: TimerCountdown(
+                format: CountDownTimerFormat.secondsOnly,
+                enableDescriptions: false,
+                endTime: targetTime,
+                timeTextStyle: const TextStyle(fontSize: 11),
+                onEnd: () {
+                  ended = true;
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      expect(find.byType(TimerCountdown), findsOneWidget);
+      expect(find.text('Seconds'), findsNothing);
+      expect(ended, isFalse);
+    });
   });
 }
