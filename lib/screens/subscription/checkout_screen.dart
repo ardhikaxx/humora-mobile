@@ -761,7 +761,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
             const SizedBox(height: 10),
             Text(
-              'a.n. ${paymentInfo?.qris?.accountName ?? "Global Mobile Content"}',
+              'a.n. ${paymentInfo?.qris?.accountName ?? "PT Global Mobile Content"}',
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
@@ -795,7 +795,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     final String bankName = selectedBank?.bankName ?? 'Bank Central Asia (BCA)';
     final String accNumber = selectedBank?.accountNumber ?? '2103039177';
-    final String accName = selectedBank?.accountName ?? 'Global Mobile Content';
+    final String accName = selectedBank?.accountName ?? 'PT Global Mobile Content';
     final String instructions = selectedBank?.instructions ?? 'Transfer tepat sesuai nominal paket ke rekening BCA di atas.';
 
     return Container(

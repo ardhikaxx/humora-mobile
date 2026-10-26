@@ -112,7 +112,7 @@ class TermsScreen extends StatelessWidget {
                             runSpacing: 6,
                             children: [
                               _buildMetaTag(LucideIcons.calendar, 'Efektif: 1 Okt 2026'),
-                              _buildMetaTag(LucideIcons.building, 'PT Humora Digital Kreatif'),
+                              _buildMetaTag(LucideIcons.building, 'PT Global Mobile Content'),
                             ],
                           ),
                         ],
@@ -198,7 +198,7 @@ class TermsScreen extends StatelessWidget {
                       iconColor: AppColors.accentPurple,
                       title: 'Hak Kekayaan Intelektual & Lisensi Konten',
                       content:
-                          'Seluruh konten yang tersedia di HUMORA—termasuk serial video komedi, sketsa, audio grafis, nama karakter, maskot "Si Humo", dan logo—merupakan hak milik eksklusif PT Humora Digital Kreatif Indonesia dan kreator mitra kami yang dilindungi undang-undang hak cipta.\n\n'
+                          'Seluruh konten yang tersedia di HUMORA—termasuk serial video komedi, sketsa, audio grafis, nama karakter, maskot "Si Humo", dan logo—merupakan hak milik eksklusif PT Global Mobile Content dan kreator mitra kami yang dilindungi undang-undang hak cipta.\n\n'
                           '• Anda diberikan lisensi terbatas, personal, non-eksklusif, dan tidak dapat dipindahtangankan untuk menonton streaming konten HUMORA untuk keperluan pribadi.\n'
                           '• Dilarang keras merekam layar (screen recording), mengunduh secara ilegal, memodifikasi, mempublikasikan ulang (re-upload), atau menyiarkan ulang ke platform lain tanpa persetujuan tertulis resmi dari HUMORA.',
                     ),
@@ -326,7 +326,7 @@ class TermsScreen extends StatelessWidget {
                     // Footer
                     const Center(
                       child: Text(
-                        '© 2026 PT Humora Digital Kreatif Indonesia.\nSeluruh hak cipta dilindungi.',
+                        '© 2026 PT Global Mobile Content.\nSeluruh hak cipta dilindungi.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 11,

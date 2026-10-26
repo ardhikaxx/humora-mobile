@@ -24,7 +24,7 @@ class BankAccountModel {
       bankLogo: json['bank_logo']?.toString(),
       bankLogoUrl: json['bank_logo_url']?.toString(),
       accountNumber: json['account_number']?.toString() ?? '',
-      accountName: json['account_name']?.toString() ?? 'Global Mobile Content',
+      accountName: json['account_name']?.toString() ?? 'PT Global Mobile Content',
       instructions: json['instructions']?.toString() ?? '',
     );
   }
@@ -59,7 +59,7 @@ class QrisModel {
       hasDynamicSupport: json['has_dynamic_support'] == true,
       rawPayload: json['raw_payload']?.toString(),
       qrisImageUrl: json['qris_image_url']?.toString(),
-      accountName: json['account_name']?.toString() ?? 'Global Mobile Content',
+      accountName: json['account_name']?.toString() ?? 'PT Global Mobile Content',
       instructions: json['instructions']?.toString() ?? '',
     );
   }

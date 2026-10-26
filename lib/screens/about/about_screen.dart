@@ -268,7 +268,7 @@ class AboutScreen extends StatelessWidget {
 
                     // Footer Copyright
                     const Text(
-                      '© 2026 PT Humora Digital Kreatif Indonesia.',
+                      '© 2026 PT Global Mobile Content.',
                       style: TextStyle(
                         fontSize: 11,
                         color: AppColors.textMuted,

@@ -172,7 +172,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                       iconColor: AppColors.primaryPurple,
                       title: 'Komitmen Privasi & Landasan Regulasi',
                       content:
-                          'PT Humora Digital Kreatif Indonesia ("HUMORA", "kami") mengoperasikan platform streaming video sketsa komedi HUMORA. Dokumen ini menjelaskan pengumpulan, pemrosesan, dan perlindungan data pribadi sesuai amanat Undang-Undang Republik Indonesia Nomor 27 Tahun 2022 tentang Perlindungan Data Pribadi (UU PDP).',
+                          'PT Global Mobile Content ("HUMORA", "kami") mengoperasikan platform streaming video sketsa komedi HUMORA. Dokumen ini menjelaskan pengumpulan, pemrosesan, dan perlindungan data pribadi sesuai amanat Undang-Undang Republik Indonesia Nomor 27 Tahun 2022 tentang Perlindungan Data Pribadi (UU PDP).',
                     ),
                     const SizedBox(height: 12),
 
@@ -351,7 +351,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                     // Footer
                     const Center(
                       child: Text(
-                        '© 2026 PT Humora Digital Kreatif Indonesia.\nPerlindungan Data Pribadi Terjamin.',
+                        '© 2026 PT Global Mobile Content.\nPerlindungan Data Pribadi Terjamin.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 11,
