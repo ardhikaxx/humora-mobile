@@ -29,14 +29,15 @@ class SeriesPosterCard extends StatelessWidget {
     final effectiveBadge = badgeLabel ?? (series.isNew ? 'BARU' : 'GRATIS');
     final isGratis = effectiveBadge == 'GRATIS';
 
-    return GestureDetector(
-      onTap: onTap ?? () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => SeriesDetailScreen(seriesId: series.id),
-          ),
-        );
-      },
+    return RepaintBoundary(
+      child: GestureDetector(
+        onTap: onTap ?? () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => SeriesDetailScreen(seriesId: series.id),
+            ),
+          );
+        },
       child: Container(
         width: width,
         height: height,
@@ -186,6 +187,6 @@ class SeriesPosterCard extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ));
   }
 }

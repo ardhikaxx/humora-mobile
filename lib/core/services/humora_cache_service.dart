@@ -17,6 +17,9 @@ class HumoraCacheService {
     ),
   );
 
+  /// Storage cap in Megabytes (MB) to prevent unlimited disk growth
+  static const double maxStorageCapMb = 500.0;
+
   /// Checks if a video file for [url] is already saved locally in cache.
   static Future<File?> getCachedVideoFile(String url) async {
     try {
@@ -36,11 +39,51 @@ class HumoraCacheService {
     Map<String, String>? headers,
   }) async {
     try {
+      // Auto-prune if cache is nearing or exceeding maxStorageCapMb
+      autoPruneIfExceedsLimit();
+
       final file = await videoCacheManager.getSingleFile(url, headers: headers);
       return file;
     } catch (e) {
       debugPrint('HumoraCacheService: Error caching file $url: $e');
       return null;
+    }
+  }
+
+  /// Automatically prune oldest cached video files if cache exceeds storage cap (defaults to 500 MB)
+  static Future<void> autoPruneIfExceedsLimit({double maxLimitMb = maxStorageCapMb}) async {
+    try {
+      final currentMb = await calculateTotalCacheSizeMb();
+      if (currentMb > maxLimitMb) {
+        debugPrint('HumoraCacheService: Cache size (${currentMb.toStringAsFixed(1)} MB) exceeds cap ($maxLimitMb MB). Pruning oldest files...');
+        final tempDir = await getTemporaryDirectory();
+        if (await tempDir.exists()) {
+          final files = <File>[];
+          await for (final entity in tempDir.list(recursive: true, followLinks: false)) {
+            if (entity is File) {
+              files.add(entity);
+            }
+          }
+          // Sort oldest modified first
+          files.sort((a, b) {
+            try {
+              return a.lastModifiedSync().compareTo(b.lastModifiedSync());
+            } catch (_) {
+              return 0;
+            }
+          });
+          // Remove oldest 30% of files
+          final countToRemove = (files.length * 0.3).ceil();
+          for (int i = 0; i < countToRemove && i < files.length; i++) {
+            try {
+              await files[i].delete();
+            } catch (_) {}
+          }
+          debugPrint('HumoraCacheService: Pruned $countToRemove files successfully.');
+        }
+      }
+    } catch (e) {
+      debugPrint('HumoraCacheService: Auto prune error: $e');
     }
   }
 

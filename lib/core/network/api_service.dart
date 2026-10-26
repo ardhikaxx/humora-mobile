@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'api_config.dart';
 
@@ -72,10 +73,37 @@ class ApiService {
           }
           return handler.next(options);
         },
-        onError: (DioException e, handler) {
+        onError: (DioException e, handler) async {
           if (e.response?.statusCode == 401) {
             // Unauthorized, token might be expired/invalid
           }
+
+          // Resilience: Auto-retry idempotent GET requests on cellular connection drops/timeouts
+          final isGet = e.requestOptions.method.toUpperCase() == 'GET';
+          final isNetworkError = e.type == DioExceptionType.connectionTimeout ||
+              e.type == DioExceptionType.receiveTimeout ||
+              e.type == DioExceptionType.connectionError;
+          final isServerError = e.response?.statusCode != null &&
+              (e.response!.statusCode == 502 || e.response!.statusCode == 503 || e.response!.statusCode == 504);
+
+          final retryCount = (e.requestOptions.extra['retry_count'] as int?) ?? 0;
+
+          if (isGet && (isNetworkError || isServerError) && retryCount < 2) {
+            final nextRetry = retryCount + 1;
+            e.requestOptions.extra['retry_count'] = nextRetry;
+            final delayMs = 1000 * nextRetry;
+            debugPrint('ApiService: Transient error ${e.message}, retrying GET in ${delayMs}ms (attempt $nextRetry of 2)...');
+            await Future.delayed(Duration(milliseconds: delayMs));
+            try {
+              final response = await _dio.fetch(e.requestOptions);
+              return handler.resolve(response);
+            } catch (retryError) {
+              if (retryError is DioException) {
+                return handler.next(retryError);
+              }
+            }
+          }
+
           return handler.next(e);
         },
       ),

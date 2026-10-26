@@ -45,11 +45,19 @@ class HumoraImage extends StatelessWidget {
         }
       }
 
+      // Optimize decoded bitmap memory consumption on low-end & mid-range Android devices
+      final int memWidth = width != null && width! > 0 ? (width! * 2.5).round() : 720;
+      final int? memHeight = height != null && height! > 0 ? (height! * 2.5).round() : null;
+
       imageWidget = CachedNetworkImage(
         imageUrl: trimmed,
         fit: fit,
         width: width,
         height: height,
+        memCacheWidth: memWidth,
+        memCacheHeight: memHeight,
+        maxWidthDiskCache: 1280,
+        maxHeightDiskCache: 720,
         placeholder: (context, url) => Container(
           width: width,
           height: height,
