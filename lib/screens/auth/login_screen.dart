@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_assets.dart';
 import '../../data/models/subscription_plan_model.dart';
@@ -11,6 +12,11 @@ import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
+  static const String keyRememberMe = 'humora_auth_remember_me';
+  static const String keyRememberedEmail = 'humora_auth_remembered_email';
+  static const String keyRememberedPhone = 'humora_auth_remembered_phone';
+  static const String keyRememberedTab = 'humora_auth_remembered_tab';
+
   final String? initialEmail;
   final SubscriptionPlanModel? redirectToCheckoutPlan;
 
@@ -40,6 +46,47 @@ class _LoginScreenState extends State<LoginScreen> {
     );
     if (widget.initialEmail != null && widget.initialEmail!.isNotEmpty) {
       _selectedTabIndex = 0;
+    }
+    _loadRememberedCredentials();
+  }
+
+  Future<void> _loadRememberedCredentials() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final bool savedRememberMe = prefs.getBool(LoginScreen.keyRememberMe) ?? true;
+      final String? savedEmail = prefs.getString(LoginScreen.keyRememberedEmail);
+      final String? savedPhone = prefs.getString(LoginScreen.keyRememberedPhone);
+      final int savedTab = prefs.getInt(LoginScreen.keyRememberedTab) ?? 0;
+
+      if (!mounted) return;
+
+      setState(() {
+        _rememberMe = savedRememberMe;
+        if (savedRememberMe) {
+          // Hanya isi email tersimpan jika widget.initialEmail kosong
+          if ((widget.initialEmail == null || widget.initialEmail!.isEmpty) &&
+              savedEmail != null &&
+              savedEmail.isNotEmpty) {
+            _emailController.text = savedEmail;
+            _emailController.selection = TextSelection.fromPosition(
+              TextPosition(offset: _emailController.text.length),
+            );
+          }
+          if (savedPhone != null && savedPhone.isNotEmpty) {
+            _phoneController.text = savedPhone;
+          }
+          // Kembalikan tab terakhir jika initialEmail tidak dispesifikasikan
+          if (widget.initialEmail == null || widget.initialEmail!.isEmpty) {
+            if (savedTab == 1 && savedPhone != null && savedPhone.isNotEmpty) {
+              _selectedTabIndex = 1;
+            } else {
+              _selectedTabIndex = 0;
+            }
+          }
+        }
+      });
+    } catch (e) {
+      debugPrint('Error loading remembered credentials: $e');
     }
   }
 
@@ -75,6 +122,27 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (success) {
+      // Simpan atau bersihkan kredensial remembered sesuai status _rememberMe
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        if (_rememberMe) {
+          await prefs.setBool(LoginScreen.keyRememberMe, true);
+          if (_selectedTabIndex == 0) {
+            await prefs.setString(LoginScreen.keyRememberedEmail, identifier);
+          } else {
+            await prefs.setString(LoginScreen.keyRememberedPhone, identifier);
+          }
+          await prefs.setInt(LoginScreen.keyRememberedTab, _selectedTabIndex);
+        } else {
+          await prefs.setBool(LoginScreen.keyRememberMe, false);
+          await prefs.remove(LoginScreen.keyRememberedEmail);
+          await prefs.remove(LoginScreen.keyRememberedPhone);
+          await prefs.remove(LoginScreen.keyRememberedTab);
+        }
+      } catch (e) {
+        debugPrint('Error persisting remembered credentials: $e');
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Berhasil masuk! Selamat datang di HUMORA.'),
@@ -315,6 +383,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: TextField(
+                              key: Key(_selectedTabIndex == 0 ? 'email_input_field' : 'phone_input_field'),
                               controller: _selectedTabIndex == 0
                                   ? _emailController
                                   : _phoneController,
@@ -387,6 +456,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: TextField(
+                              key: const Key('password_input_field'),
                               controller: _passwordController,
                               obscureText: _obscurePassword,
                               decoration: const InputDecoration(
@@ -416,16 +486,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 14),
 
-                    // Remember Me Checkbox
-                    Row(
-                      children: [
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _rememberMe = !_rememberMe;
-                            });
-                          },
-                          child: Container(
+                    // Remember Me Checkbox (Full Row Clickable)
+                    GestureDetector(
+                      key: const Key('remember_me_checkbox'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        setState(() {
+                          _rememberMe = !_rememberMe;
+                        });
+                      },
+                      child: Row(
+                        children: [
+                          Container(
                             width: 20,
                             height: 20,
                             decoration: BoxDecoration(
@@ -444,18 +516,18 @@ class _LoginScreenState extends State<LoginScreen> {
                                   )
                                 : null,
                           ),
-                        ),
-                        const SizedBox(width: 10),
-                        const Expanded(
-                          child: Text(
-                            'Ingat saya di perangkat ini',
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              color: AppColors.textSecondary,
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Text(
+                              'Ingat saya di perangkat ini',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 20),
 
@@ -466,6 +538,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: double.infinity,
                       height: 52,
                       child: ElevatedButton(
+                        key: const Key('login_submit_button'),
                         onPressed: _handleLogin,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primaryDark,
