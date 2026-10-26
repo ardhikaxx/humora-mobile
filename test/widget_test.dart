@@ -440,7 +440,7 @@ void main() {
     expect(find.text('Komitmen Privasi & Landasan Regulasi'), findsOneWidget);
     expect(find.text('BAGIAN 03'), findsOneWidget);
     expect(find.text('Penggunaan Izin Native Perangkat (Permissions)'), findsOneWidget);
-    expect(find.text('privacy@humora.id'), findsOneWidget);
+    expect(find.text('marketing@globalmc.co.id'), findsOneWidget);
   });
 
   testWidgets('HomeScreen section headers use Lucide icons and no emoticons', (WidgetTester tester) async {

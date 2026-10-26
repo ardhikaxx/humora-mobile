@@ -1057,20 +1057,39 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
           _stopVideo();
         }
       },
-      child: Scaffold(
-        backgroundColor: AppColors.background,
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 40),
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.light.copyWith(
+          statusBarColor: Colors.black,
+          statusBarIconBrightness: Brightness.light,
+          systemNavigationBarColor: AppColors.background,
+          systemNavigationBarIconBrightness: Brightness.dark,
+        ),
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: SafeArea(
+            top: true,
+            bottom: false,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Real Video Player Stream Section
+                // Sticky / Fixed Video Player Stream Section (Does not scroll with content below)
                 _buildVideoPlayerSection(context, series, currentEpisode, nextEpisode),
 
-                const SizedBox(height: 16),
+                // Scrollable Content Below Video Player
+                Expanded(
+                  child: Container(
+                    color: AppColors.background,
+                    child: SafeArea(
+                      top: false,
+                      bottom: true,
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.only(bottom: 40),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 16),
 
-                // Series Navigation Pill Tag
+                            // Series Navigation Pill Tag
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: GestureDetector(
@@ -1615,6 +1634,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
             ],
           ),
         ),
+      ),
+      ),
+      ),
+      ],
+      ),
+      ),
       ),
       ),
     );

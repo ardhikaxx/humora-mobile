@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_colors.dart';
 import '../../widgets/custom_pill_app_bar.dart';
 
@@ -307,25 +308,39 @@ class PrivacyPolicyScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 10),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: AppColors.background,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Row(
-                              children: [
-                                Icon(LucideIcons.atSign, size: 14, color: AppColors.primaryPurple),
-                                SizedBox(width: 8),
-                                Text(
-                                  'privacy@humora.id',
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.primaryPurple,
+                          GestureDetector(
+                            onTap: () async {
+                              final Uri uri = Uri.parse(
+                                'mailto:marketing@globalmc.co.id?subject=Pertanyaan%20Kebijakan%20Privasi%20HUMORA',
+                              );
+                              try {
+                                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              } catch (_) {}
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                              decoration: BoxDecoration(
+                                color: AppColors.background,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppColors.border, width: 1),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(LucideIcons.mail, size: 15, color: AppColors.primaryPurple),
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      'marketing@globalmc.co.id',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.primaryPurple,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ],
+                                  Icon(LucideIcons.externalLink, size: 14, color: AppColors.accentPurple),
+                                ],
+                              ),
                             ),
                           ),
                         ],
