@@ -48,3 +48,9 @@ app.*.map.json
 .widget_preview/
 
 /android/build/
+
+# Signing keys
+key.properties
+**/key.properties
+*.jks
+**/*.jks
