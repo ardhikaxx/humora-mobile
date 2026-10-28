@@ -138,6 +138,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   void didPopNext() {
     // Returned to this screen from an overlaid route
     _isPopping = false;
+    // Reinitialize video player since it was disposed in deactivate()
+    if (mounted && !_isDisposed) {
+      _initializeVideoPlayer();
+    }
   }
 
   @override
@@ -150,7 +154,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   @override
   void deactivate() {
     _isPopping = true;
-    _stopVideo();
+    // Fully dispose video player so video stops completely when exiting screen
+    _disposePlayer();
     super.deactivate();
   }
 

@@ -894,7 +894,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               const SizedBox(width: 4),
                               const Text(
-                                'Perpanjang Premium >',
+                                'Perpanjang >',
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
@@ -1075,26 +1075,17 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
               decoration: BoxDecoration(
                 color: AppColors.primaryDark,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'Langganan',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                  SizedBox(width: 4),
                   Icon(
                     LucideIcons.chevronRight,
-                    size: 14,
+                    size: 18,
                     color: Colors.white,
                   ),
                 ],

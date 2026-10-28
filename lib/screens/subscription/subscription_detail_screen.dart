@@ -483,7 +483,7 @@ class _SubscriptionDetailScreenState extends State<SubscriptionDetailScreen> {
                     Icon(LucideIcons.crown, size: 15, color: AppColors.primaryYellow),
                     SizedBox(width: 8),
                     Text(
-                      'Perpanjang Paket VIP Sekarang',
+                      'Perpanjang Sekarang',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,

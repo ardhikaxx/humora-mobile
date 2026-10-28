@@ -16,6 +16,8 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
   int _selectedCategoryIndex = 0;
   final Set<int> _expandedFaqIndices = {0}; // First FAQ expanded as in reference
   final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  List<Map<String, String>> _filteredFaqs = [];
 
   final List<Map<String, dynamic>> _categories = [
     {'title': 'Semua Topik', 'icon': LucideIcons.helpCircle},
@@ -25,7 +27,42 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _filterFaqs();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      _searchQuery = _searchController.text;
+      _filterFaqs();
+    });
+  }
+
+  void _filterFaqs() {
+    final category = _categories[_selectedCategoryIndex]['title'] as String;
+    setState(() {
+      _filteredFaqs = FaqData.faqs.where((faq) {
+        final matchesCategory =
+            category == 'Semua Topik' || faq['category'] == category;
+        final query = _searchQuery.toLowerCase();
+        final matchesSearch = query.isEmpty ||
+            faq['question']!.toLowerCase().contains(query) ||
+            faq['answer']!.toLowerCase().contains(query);
+        return matchesCategory && matchesSearch;
+      }).toList();
+      // Reset expanded indices when filter changes
+      _expandedFaqIndices.clear();
+      if (_filteredFaqs.isNotEmpty) {
+        _expandedFaqIndices.add(0);
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
   }
@@ -151,6 +188,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                                 Expanded(
                                   child: TextField(
                                     controller: _searchController,
+                                    onChanged: (_) => _onSearchChanged(),
                                     style: const TextStyle(color: Colors.white, fontSize: 12.5),
                                     decoration: InputDecoration(
                                       border: InputBorder.none,
@@ -201,6 +239,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                           onTap: () {
                             setState(() {
                               _selectedCategoryIndex = index;
+                              _filterFaqs();
                             });
                           },
                           child: Container(
@@ -262,9 +301,45 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                           ),
                           const SizedBox(height: 14),
 
-                          ...List.generate(FaqData.faqs.length, (idx) {
-                            final faq = FaqData.faqs[idx];
-                            final isExpanded = _expandedFaqIndices.contains(idx);
+                          if (_filteredFaqs.isEmpty) ...[
+                            Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: AppColors.surface,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: AppColors.border, width: 1.2),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    LucideIcons.search,
+                                    size: 48,
+                                    color: AppColors.textSecondary.withValues(alpha: 0.5),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Tidak ada hasil ditemukan',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Coba kata kunci atau kategori lain.',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ] else ...[
+                            ...List.generate(_filteredFaqs.length, (idx) {
+                              final faq = _filteredFaqs[idx];
+                              final isExpanded = _expandedFaqIndices.contains(idx);
 
                             return Column(
                               children: [
@@ -327,8 +402,9 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                             );
                           }),
                         ],
-                      ),
+                      ],
                     ),
+                  ),
                     const SizedBox(height: 20),
 
                     // Masih Butuh Bantuan Card

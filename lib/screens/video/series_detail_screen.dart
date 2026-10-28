@@ -727,6 +727,29 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                             ],
                           ),
                         )
+                      else if (auth.isPremium || auth.hasFullAccess)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE6F8F0),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(LucideIcons.lockOpen, size: 10, color: AppColors.green),
+                              const SizedBox(width: 3),
+                              Text(
+                                'PREMIUM',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.green,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
                       else
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),

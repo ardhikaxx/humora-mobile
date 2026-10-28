@@ -143,6 +143,8 @@ class _LoginScreenState extends State<LoginScreen> {
         debugPrint('Error persisting remembered credentials: $e');
       }
 
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Berhasil masuk! Selamat datang di HUMORA.'),

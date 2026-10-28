@@ -610,7 +610,7 @@ class ProfileScreen extends StatelessWidget {
                         Icon(LucideIcons.crown, size: 15),
                         SizedBox(width: 6),
                         Text(
-                          'Perpanjang Premium',
+                          'Perpanjang',
                           style: TextStyle(
                             fontSize: 12.5,
                             fontWeight: FontWeight.w700,
