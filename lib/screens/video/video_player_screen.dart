@@ -1225,9 +1225,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                         ),
                       ),
                       child: LikeButton(
+                        key: ValueKey('like_btn_${currentEpisode.id}'),
                         size: 20,
                         isLiked: isEpLiked,
-                        likeCount: int.tryParse(currentEpisode.likes.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
+                        likeCount: currentEpisode.likesCount,
                         circleColor: const CircleColor(
                           start: Color(0xFFFF5252),
                           end: Color(0xFFFF1744),

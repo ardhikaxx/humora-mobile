@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_assets.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/series_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
 import '../../widgets/initials_avatar.dart';
 import '../about/about_screen.dart';
@@ -862,6 +863,9 @@ class ProfileScreen extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               auth.logout();
+              try {
+                context.read<SeriesProvider>().fetchSeries();
+              } catch (_) {}
               Navigator.of(context).pop();
             },
             style: ElevatedButton.styleFrom(

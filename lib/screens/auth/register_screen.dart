@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_assets.dart';
 import '../../data/models/subscription_plan_model.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/series_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
 import '../legal/terms_screen.dart';
 import '../legal/privacy_policy_screen.dart';
@@ -98,6 +99,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
 
     if (success) {
+      // Refresh series catalog and like states for newly registered user
+      try {
+        context.read<SeriesProvider>().fetchSeries();
+      } catch (_) {}
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Akun berhasil dibuat! Selamat datang di HUMORA.'),

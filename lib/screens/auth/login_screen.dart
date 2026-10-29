@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_assets.dart';
 import '../../data/models/subscription_plan_model.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/series_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
 import '../subscription/checkout_screen.dart';
 import 'register_screen.dart';
@@ -144,6 +145,11 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       if (!mounted) return;
+
+      // Refresh series catalog and like states for newly logged in user
+      try {
+        context.read<SeriesProvider>().fetchSeries();
+      } catch (_) {}
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
