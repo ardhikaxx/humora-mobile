@@ -234,72 +234,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 24),
               ],
 
-              // Video Populer Section
-              Showcase(
-                key: _keyPopular,
-                title: 'Koleksi Video Populer',
-                description: 'Temukan video-video paling viral dan disukai oleh penonton HUMORA.',
-                tooltipBackgroundColor: AppColors.surface,
-                textColor: AppColors.textPrimary,
-                titleTextStyle: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFEF4444), fontSize: 14),
-                descTextStyle: const TextStyle(fontWeight: FontWeight.w500, color: AppColors.textSecondary, fontSize: 12),
-                child: _buildSectionHeader(
-                  title: 'Video Populer',
-                  icon: LucideIcons.flame,
-                  iconColor: const Color(0xFFEF4444),
-                  actionLabel: 'Lihat Semua',
-                  onActionTap: () => widget.onNavigateTab?.call(1),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 150,
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: seriesProv.popularSeries.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: 12),
-                  itemBuilder: (context, index) {
-                    final series = seriesProv.popularSeries[index];
-                    return SeriesPosterCard(
-                      series: series,
-                      badgeLabel: index == 0 ? 'GRATIS' : (index == 1 ? 'BARU' : 'GRATIS'),
-                    );
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Terbaru di HUMORA Section
-              _buildSectionHeader(
-                title: 'Terbaru di HUMORA',
-                icon: LucideIcons.sparkles,
-                iconColor: AppColors.accentPurple,
-                actionLabel: 'Lihat Semua',
-                onActionTap: () => widget.onNavigateTab?.call(1),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 150,
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: seriesProv.newSeries.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: 12),
-                  itemBuilder: (context, index) {
-                    final series = seriesProv.newSeries[index];
-                    return SeriesPosterCard(
-                      series: series,
-                      badgeLabel: 'BARU',
-                      badgeColor: AppColors.primaryYellowDark,
-                    );
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
               // Gratis untuk Kamu Section
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -383,7 +317,73 @@ class _HomeScreenState extends State<HomeScreen> {
                     final series = seriesProv.freeSeries[index];
                     return SeriesPosterCard(
                       series: series,
-                      badgeLabel: index % 2 == 0 ? 'BARU' : 'GRATIS',
+                      badgeLabel: 'GRATIS',
+                    );
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Video Populer Section
+              Showcase(
+                key: _keyPopular,
+                title: 'Koleksi Video Populer',
+                description: 'Temukan video-video paling viral dan disukai oleh penonton HUMORA.',
+                tooltipBackgroundColor: AppColors.surface,
+                textColor: AppColors.textPrimary,
+                titleTextStyle: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFEF4444), fontSize: 14),
+                descTextStyle: const TextStyle(fontWeight: FontWeight.w500, color: AppColors.textSecondary, fontSize: 12),
+                child: _buildSectionHeader(
+                  title: 'Video Populer',
+                  icon: LucideIcons.flame,
+                  iconColor: const Color(0xFFEF4444),
+                  actionLabel: 'Lihat Semua',
+                  onActionTap: () => widget.onNavigateTab?.call(1),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 150,
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: seriesProv.popularSeries.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 12),
+                  itemBuilder: (context, index) {
+                    final series = seriesProv.popularSeries[index];
+                    return SeriesPosterCard(
+                      series: series,
+                      badgeLabel: index == 0 ? 'GRATIS' : (index == 1 ? 'BARU' : 'GRATIS'),
+                    );
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Terbaru di HUMORA Section
+              _buildSectionHeader(
+                title: 'Terbaru di HUMORA',
+                icon: LucideIcons.sparkles,
+                iconColor: AppColors.accentPurple,
+                actionLabel: 'Lihat Semua',
+                onActionTap: () => widget.onNavigateTab?.call(1),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 150,
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: seriesProv.newSeries.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 12),
+                  itemBuilder: (context, index) {
+                    final series = seriesProv.newSeries[index];
+                    return SeriesPosterCard(
+                      series: series,
+                      badgeLabel: 'BARU',
+                      badgeColor: AppColors.primaryYellowDark,
                     );
                   },
                 ),
@@ -603,6 +603,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(height: 24),
 
+          // Gratis untuk Kamu Skeleton Section
+          _buildSkeletonSectionHeader('Gratis untuk Kamu', subtitle: 'Tonton 2 video pertama tanpa langganan'),
+          const SizedBox(height: 12),
+          _buildSkeletonPosterList(),
+
+          const SizedBox(height: 24),
+
           // Video Populer Skeleton Section
           _buildSkeletonSectionHeader('Video Populer'),
           const SizedBox(height: 12),
@@ -612,13 +619,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // Terbaru di HUMORA Skeleton Section
           _buildSkeletonSectionHeader('Terbaru di HUMORA'),
-          const SizedBox(height: 12),
-          _buildSkeletonPosterList(),
-
-          const SizedBox(height: 24),
-
-          // Gratis untuk Kamu Skeleton Section
-          _buildSkeletonSectionHeader('Gratis untuk Kamu', subtitle: 'Tonton 2 video pertama tanpa langganan'),
           const SizedBox(height: 12),
           _buildSkeletonPosterList(),
 
