@@ -66,6 +66,7 @@ dependencies:
   flutter_screenutil: ^5.9.3
   flutter_timer_countdown: ^1.0.7
   like_button: ^2.1.0
+  workmanager: ^0.10.10
 
 dev_dependencies:
   flutter_test:

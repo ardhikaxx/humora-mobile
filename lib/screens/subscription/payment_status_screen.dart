@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/subscription_plan_model.dart';
 import '../../data/models/transaction_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/transaction_provider.dart';
 import '../../core/services/local_notification_service.dart';
+import '../../core/services/background_task_service.dart';
 import '../../widgets/custom_pill_app_bar.dart';
 import '../main_navigation_shell.dart';
 
@@ -48,8 +50,20 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
           trxCode: updated.trxCode,
           planName: updated.planName,
         );
+        _markTrxNotified(updated.trxCode);
       }
     }
+  }
+
+  Future<void> _markTrxNotified(String trxCode) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = prefs.getStringList(BackgroundTaskService.keyNotifiedTrx) ?? [];
+      if (!list.contains(trxCode)) {
+        list.add(trxCode);
+        await prefs.setStringList(BackgroundTaskService.keyNotifiedTrx, list);
+      }
+    } catch (_) {}
   }
 
   Future<void> _handleManualCheck() async {
@@ -70,6 +84,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
           trxCode: updated.trxCode,
           planName: updated.planName,
         );
+        _markTrxNotified(updated.trxCode);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Selamat! Pembayaran Anda telah disetujui dan akses VIP sudah aktif!'),

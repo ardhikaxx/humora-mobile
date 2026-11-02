@@ -9,6 +9,7 @@ import 'core/network/api_config.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/download_service.dart';
 import 'core/services/local_notification_service.dart';
+import 'core/services/background_task_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/series_provider.dart';
 import 'providers/history_provider.dart';
@@ -31,6 +32,9 @@ void main() async {
   // Initialize Local Notifications and schedule daily reminder
   await LocalNotificationService.initialize();
   await LocalNotificationService.scheduleDailyComedyReminder();
+
+  // Initialize Workmanager for periodic background updates (VIP approval, new content)
+  await BackgroundTaskService.initialize();
 
   // Initialize background downloader service
   DownloadService().initialize();

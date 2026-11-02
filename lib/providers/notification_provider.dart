@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/network/api_service.dart';
+import '../core/services/background_task_service.dart';
 import '../core/services/local_notification_service.dart';
 import '../data/models/notification_model.dart';
 
@@ -33,6 +35,13 @@ class NotificationProvider extends ChangeNotifier {
             .map((item) => NotificationModel.fromJson(item as Map<String, dynamic>))
             .toList();
 
+        // Load background notified IDs to avoid duplicate alerts
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          final bgNotified = prefs.getStringList(BackgroundTaskService.keyNotifiedNotifs) ?? [];
+          _locallyNotifiedIds.addAll(bgNotified);
+        } catch (_) {}
+
         // Check if there are newly arrived unread notifications
         for (final notif in fresh) {
           if (!notif.isRead && !_locallyNotifiedIds.contains(notif.id)) {
@@ -45,6 +54,12 @@ class NotificationProvider extends ChangeNotifier {
             }
           }
         }
+
+        // Persist notified IDs so background service won't re-notify
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setStringList(BackgroundTaskService.keyNotifiedNotifs, _locallyNotifiedIds.toList());
+        } catch (_) {}
 
         _notifications = fresh;
       }
