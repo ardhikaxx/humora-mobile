@@ -10,10 +10,15 @@ class ApiConfig {
   static String get baseUrl => _currentBaseUrl.isNotEmpty ? _currentBaseUrl : defaultBaseUrl;
 
   static Future<void> init() async {
-    _currentBaseUrl = defaultBaseUrl;
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyBaseUrl, defaultBaseUrl);
+      final saved = prefs.getString(_keyBaseUrl);
+      if (saved != null && saved.trim().isNotEmpty) {
+        _currentBaseUrl = saved.trim();
+      } else {
+        _currentBaseUrl = defaultBaseUrl;
+        await prefs.setString(_keyBaseUrl, defaultBaseUrl);
+      }
     } catch (_) {
       _currentBaseUrl = defaultBaseUrl;
     }

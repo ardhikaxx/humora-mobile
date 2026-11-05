@@ -1,10 +1,14 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/network/api_service.dart';
 import '../data/models/series_model.dart';
 import '../data/models/episode_model.dart';
 
 class SeriesProvider extends ChangeNotifier {
   final ApiService _api = ApiService();
+  static const String _seriesCacheKey = 'humora_cached_series_list_v2';
+  static const String _featuredCacheKey = 'humora_cached_featured_series_v2';
 
   static const SeriesModel _emptySeries = SeriesModel(
     id: '',
@@ -38,8 +42,54 @@ class SeriesProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   SeriesProvider() {
+    _loadCachedSeries();
     fetchSeries();
     fetchCategories();
+  }
+
+  Future<void> _loadCachedSeries() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedJson = prefs.getString(_seriesCacheKey);
+      if (cachedJson != null && cachedJson.isNotEmpty) {
+        final List<dynamic> decoded = jsonDecode(cachedJson);
+        final cachedList = decoded
+            .map((item) => SeriesModel.fromJson(item as Map<String, dynamic>))
+            .toList();
+        if (cachedList.isNotEmpty) {
+          _seriesList = cachedList;
+          _isLoading = false;
+          notifyListeners();
+        }
+      }
+
+      final featJson = prefs.getString(_featuredCacheKey);
+      if (featJson != null && featJson.isNotEmpty) {
+        final Map<String, dynamic> featDecoded = jsonDecode(featJson);
+        _featuredSeries = SeriesModel.fromJson(featDecoded);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('SeriesProvider: Error loading cached series: $e');
+    }
+  }
+
+  Future<void> _saveCachedSeries(List<dynamic> rawData) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_seriesCacheKey, jsonEncode(rawData));
+    } catch (e) {
+      debugPrint('SeriesProvider: Error caching series: $e');
+    }
+  }
+
+  Future<void> _saveCachedFeatured(dynamic rawData) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_featuredCacheKey, jsonEncode(rawData));
+    } catch (e) {
+      debugPrint('SeriesProvider: Error caching featured series: $e');
+    }
   }
 
   SeriesModel get featuredSeries {
@@ -176,27 +226,33 @@ class SeriesProvider extends ChangeNotifier {
   }
 
   Future<void> fetchSeries() async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
+    if (_seriesList.isEmpty) {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+    }
 
     try {
       final res = await _api.getSeries();
       if (res.data != null && res.data['data'] is List) {
-        final parsed = (res.data['data'] as List)
+        final rawList = res.data['data'] as List;
+        final parsed = rawList
             .map((item) => SeriesModel.fromJson(item as Map<String, dynamic>))
             .toList();
 
-        _seriesList = parsed;
+        if (parsed.isNotEmpty) {
+          _seriesList = parsed;
+          await _saveCachedSeries(rawList);
 
-        // Synchronize initial liked state for all series and episodes
-        for (final s in _seriesList) {
-          if (s.isLiked) {
-            _likedSeries.add(s.id);
-          }
-          for (final ep in s.episodes) {
-            if (ep.isLiked) {
-              _likedEpisodes.add(ep.id);
+          // Synchronize initial liked state for all series and episodes
+          for (final s in _seriesList) {
+            if (s.isLiked) {
+              _likedSeries.add(s.id);
+            }
+            for (final ep in s.episodes) {
+              if (ep.isLiked) {
+                _likedEpisodes.add(ep.id);
+              }
             }
           }
         }
@@ -211,6 +267,7 @@ class SeriesProvider extends ChangeNotifier {
               .toList();
           if (featList.isNotEmpty) {
             _featuredSeries = featList.first;
+            await _saveCachedFeatured(featRes.data['data'][0]);
           }
         }
       } catch (e) {
@@ -225,8 +282,12 @@ class SeriesProvider extends ChangeNotifier {
           _featuredSeries = _seriesList.isNotEmpty ? _seriesList.first : null;
         }
       }
+      _errorMessage = null;
     } catch (e) {
       _errorMessage = 'Gagal memuat series: ${e.toString()}';
+      if (_seriesList.isEmpty) {
+        await _loadCachedSeries();
+      }
     } finally {
       _isLoading = false;
       notifyListeners();

@@ -19,6 +19,12 @@ class HistoryProvider extends ChangeNotifier {
 
   int get totalCount => _history.length;
 
+  void clearLocal() {
+    _history = [];
+    _isLoading = false;
+    notifyListeners();
+  }
+
   HistoryProvider() {
     fetchHistory();
   }

@@ -1,11 +1,14 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/network/api_service.dart';
 import '../core/services/local_notification_service.dart';
 import '../data/models/user_model.dart';
 
 class AuthProvider extends ChangeNotifier {
   final ApiService _api = ApiService();
+  static const String _userCacheKey = 'humora_auth_cached_user';
 
   UserModel _user = _defaultGuestUser;
   bool _isLoading = false;
@@ -36,24 +39,69 @@ class AuthProvider extends ChangeNotifier {
     initialize();
   }
 
+  Future<void> _saveUserToCache(UserModel user) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_userCacheKey, jsonEncode(user.toJson()));
+    } catch (e) {
+      debugPrint('AuthProvider: Failed to cache user: $e');
+    }
+  }
+
+  Future<void> _clearUserCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_userCacheKey);
+    } catch (e) {
+      debugPrint('AuthProvider: Failed to clear cached user: $e');
+    }
+  }
+
   Future<void> initialize() async {
+    // 1. Immediately restore cached user from local storage (eliminates guest flicker)
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedJson = prefs.getString(_userCacheKey);
+      if (cachedJson != null && cachedJson.isNotEmpty) {
+        final Map<String, dynamic> decoded = jsonDecode(cachedJson);
+        _user = UserModel.fromJson(decoded);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('AuthProvider: Error reading cached user: $e');
+    }
+
+    // 2. Read persistent token
     final token = await _api.getToken();
     if (token == null || token.isEmpty) {
-      _user = _defaultGuestUser;
-      notifyListeners();
+      if (_user.tier != UserTier.guest) {
+        _user = _defaultGuestUser;
+        await _clearUserCache();
+        notifyListeners();
+      }
       return;
     }
 
+    // 3. If token exists, validate and refresh user data with backend in background
     try {
       final res = await _api.getMe();
       if (res.data != null && res.data['data'] != null && res.data['data']['user'] != null) {
         _user = UserModel.fromJson(res.data['data']['user'] as Map<String, dynamic>);
+        await _saveUserToCache(_user);
         _checkSubscriptionNotifications();
       }
-    } catch (_) {
-      // If token expired/invalid, clear it and fall back to guest
-      await _api.clearToken();
-      _user = _defaultGuestUser;
+    } catch (e) {
+      // ONLY clear token if backend explicitly returns HTTP 401 Unauthorized (token deleted/revoked)
+      if (e is DioException && e.response?.statusCode == 401) {
+        debugPrint('AuthProvider: Token is invalid (401 Unauthorized). Resetting to guest.');
+        await _api.clearToken();
+        await _clearUserCache();
+        _user = _defaultGuestUser;
+      } else {
+        // Network timeout, offline startup, socket exception, 500 server error:
+        // NEVER log the user out! Keep existing logged-in session intact!
+        debugPrint('AuthProvider: Transient network or server error during getMe ($e). Keeping user session active.');
+      }
     } finally {
       notifyListeners();
     }
@@ -202,6 +250,7 @@ class AuthProvider extends ChangeNotifier {
 
         if (res.data['data']['user'] != null) {
           _user = UserModel.fromJson(res.data['data']['user'] as Map<String, dynamic>);
+          await _saveUserToCache(_user);
         } else {
           await refreshUser();
         }
@@ -251,6 +300,7 @@ class AuthProvider extends ChangeNotifier {
 
         if (res.data['data']['user'] != null) {
           _user = UserModel.fromJson(res.data['data']['user'] as Map<String, dynamic>);
+          await _saveUserToCache(_user);
         }
 
         _isLoading = false;
@@ -289,6 +339,7 @@ class AuthProvider extends ChangeNotifier {
 
       if (res.data != null && res.data['data'] != null && res.data['data']['user'] != null) {
         _user = UserModel.fromJson(res.data['data']['user'] as Map<String, dynamic>);
+        await _saveUserToCache(_user);
       }
       _isLoading = false;
       notifyListeners();
@@ -306,10 +357,15 @@ class AuthProvider extends ChangeNotifier {
       final res = await _api.getMe();
       if (res.data != null && res.data['data'] != null && res.data['data']['user'] != null) {
         _user = UserModel.fromJson(res.data['data']['user'] as Map<String, dynamic>);
+        await _saveUserToCache(_user);
         notifyListeners();
         _checkSubscriptionNotifications();
       }
-    } catch (_) {}
+    } catch (e) {
+      if (e is DioException && e.response?.statusCode == 401) {
+        await logout();
+      }
+    }
   }
 
   Future<void> logout() async {
@@ -321,6 +377,7 @@ class AuthProvider extends ChangeNotifier {
     } catch (_) {
       await _api.clearToken();
     } finally {
+      await _clearUserCache();
       _user = _defaultGuestUser;
       _isLoading = false;
       notifyListeners();

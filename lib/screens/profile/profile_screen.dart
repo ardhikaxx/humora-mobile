@@ -5,6 +5,8 @@ import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_assets.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/series_provider.dart';
+import '../../providers/history_provider.dart';
+import '../../providers/notification_provider.dart';
 import '../../widgets/custom_pill_app_bar.dart';
 import '../../widgets/initials_avatar.dart';
 import '../about/about_screen.dart';
@@ -861,12 +863,20 @@ class ProfileScreen extends StatelessWidget {
             child: const Text('Batal'),
           ),
           ElevatedButton(
-            onPressed: () {
-              auth.logout();
-              try {
-                context.read<SeriesProvider>().fetchSeries();
-              } catch (_) {}
+            onPressed: () async {
               Navigator.of(context).pop();
+              await auth.logout();
+              if (context.mounted) {
+                try {
+                  context.read<HistoryProvider>().clearLocal();
+                } catch (_) {}
+                try {
+                  context.read<NotificationProvider>().clearLocal();
+                } catch (_) {}
+                try {
+                  await context.read<SeriesProvider>().fetchSeries();
+                } catch (_) {}
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.red,

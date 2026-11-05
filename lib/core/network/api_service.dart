@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'api_config.dart';
 
 class ApiResponse<T> {
@@ -64,13 +65,22 @@ class ApiService {
           options.baseUrl = ApiConfig.baseUrl;
 
           // Always attach persistent session/device ID for guest & member analytics/likes
-          final sessionId = await getSessionId();
-          options.headers['X-Session-ID'] = sessionId;
+          try {
+            final sessionId = await getSessionId();
+            options.headers['X-Session-ID'] = sessionId;
+          } catch (_) {}
 
-          final token = await getToken();
-          if (token != null && token.isNotEmpty) {
-            options.headers['Authorization'] = 'Bearer $token';
+          try {
+            final token = await getToken();
+            if (token != null && token.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer $token';
+            } else {
+              options.headers.remove('Authorization');
+            }
+          } catch (_) {
+            options.headers.remove('Authorization');
           }
+
           return handler.next(options);
         },
         onError: (DioException e, handler) async {
@@ -112,20 +122,64 @@ class ApiService {
 
   Dio get dio => _dio;
 
+  static const String _tokenPrefKey = 'humora_auth_token_prefs';
+  static const String _sessionPrefKey = 'humora_device_session_id_prefs';
+
   // --- TOKEN MANAGEMENT ---
   Future<String?> getToken() async {
-    _cachedToken ??= await _storage.read(key: _tokenKey);
+    if (_cachedToken != null && _cachedToken!.isNotEmpty) {
+      return _cachedToken;
+    }
+
+    // 1. Try secure storage first
+    try {
+      _cachedToken = await _storage.read(key: _tokenKey);
+    } catch (e) {
+      debugPrint('ApiService: FlutterSecureStorage read token error: $e');
+    }
+
+    // 2. Fallback to SharedPreferences if secure storage returned empty or threw
+    if (_cachedToken == null || _cachedToken!.isEmpty) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        _cachedToken = prefs.getString(_tokenPrefKey);
+      } catch (e) {
+        debugPrint('ApiService: SharedPreferences read token error: $e');
+      }
+    }
+
     return _cachedToken;
   }
 
   Future<void> saveToken(String token) async {
     _cachedToken = token;
-    await _storage.write(key: _tokenKey, value: token);
+    try {
+      await _storage.write(key: _tokenKey, value: token);
+    } catch (e) {
+      debugPrint('ApiService: FlutterSecureStorage write token error: $e');
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_tokenPrefKey, token);
+    } catch (e) {
+      debugPrint('ApiService: SharedPreferences write token error: $e');
+    }
   }
 
   Future<void> clearToken() async {
     _cachedToken = null;
-    await _storage.delete(key: _tokenKey);
+    try {
+      await _storage.delete(key: _tokenKey);
+    } catch (e) {
+      debugPrint('ApiService: FlutterSecureStorage delete token error: $e');
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_tokenPrefKey);
+    } catch (e) {
+      debugPrint('ApiService: SharedPreferences remove token error: $e');
+    }
+    _dio.options.headers.remove('Authorization');
   }
 
   // --- DEVICE & GUEST SESSION MANAGEMENT ---
@@ -136,16 +190,31 @@ class ApiService {
     if (_cachedSessionId != null && _cachedSessionId!.isNotEmpty) {
       return _cachedSessionId!;
     }
+
+    // 1. Try secure storage
     try {
       _cachedSessionId = await _storage.read(key: _sessionKey);
     } catch (_) {}
 
+    // 2. Fallback to SharedPreferences
+    if (_cachedSessionId == null || _cachedSessionId!.isEmpty) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        _cachedSessionId = prefs.getString(_sessionPrefKey);
+      } catch (_) {}
+    }
+
+    // 3. Generate new persistent ID if neither has it
     if (_cachedSessionId == null || _cachedSessionId!.isEmpty) {
       final now = DateTime.now().millisecondsSinceEpoch;
       final rand = Random().nextInt(0x7FFFFFFF);
       _cachedSessionId = 'device_${now}_$rand';
       try {
         await _storage.write(key: _sessionKey, value: _cachedSessionId!);
+      } catch (_) {}
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_sessionPrefKey, _cachedSessionId!);
       } catch (_) {}
     }
     return _cachedSessionId!;

@@ -20,6 +20,12 @@ class NotificationProvider extends ChangeNotifier {
 
   int get unreadCount => unreadNotifications.length;
 
+  void clearLocal() {
+    _notifications = [];
+    _isLoading = false;
+    notifyListeners();
+  }
+
   NotificationProvider() {
     fetchNotifications();
   }
