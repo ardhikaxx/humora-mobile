@@ -321,33 +321,28 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Progres: ${item.progressPercent}%',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textMuted,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          VibrationService.lightImpact();
-                          historyProv.removeHistory(item.id);
-                          HumoraToast.showInfo(
-                            context,
-                            '"${item.seriesTitle}" dihapus dari riwayat.',
-                            title: 'Riwayat Diperbarui',
-                          );
-                        },
-                        child: const Icon(
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        VibrationService.lightImpact();
+                        historyProv.removeHistory(item.id);
+                        HumoraToast.showInfo(
+                          context,
+                          '"${item.seriesTitle}" dihapus dari riwayat.',
+                          title: 'Riwayat Diperbarui',
+                        );
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+                        child: Icon(
                           LucideIcons.trash2,
                           size: 15,
                           color: AppColors.textMuted,
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ],
               ),
