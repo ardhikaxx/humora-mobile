@@ -7,9 +7,9 @@ import '../screens/subscription/subscription_plans_screen.dart';
 class PaywallModal extends StatelessWidget {
   const PaywallModal({super.key});
 
-  static Future<void> show(BuildContext context) {
+  static Future<bool?> show(BuildContext context) {
     VibrationService.mediumImpact();
-    return showModalBottomSheet(
+    return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -19,62 +19,69 @@ class PaywallModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Drag Handle
-          Container(
-            width: 44,
-            height: 4,
-            decoration: BoxDecoration(
-              color: const Color(0xFFD4D4D8),
-              borderRadius: BorderRadius.circular(2),
-            ),
+    return SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        child: Container(
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
-          const SizedBox(height: 12),
-
-          // Close Button
-          Align(
-            alignment: Alignment.topRight,
-            child: GestureDetector(
-              onTap: () => Navigator.of(context).pop(),
-              child: Container(
-                width: 32,
-                height: 32,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF4F4F5),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  LucideIcons.x,
-                  size: 16,
-                  color: AppColors.textSecondary,
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag Handle
+              Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD4D4D8),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-            ),
-          ),
+              const SizedBox(height: 8),
+
+              // Close Button
+              Align(
+                alignment: Alignment.topRight,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    VibrationService.lightImpact();
+                    Navigator.of(context).pop(false);
+                  },
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF4F4F5),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      LucideIcons.x,
+                      size: 15,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
 
           // Crown Icon with Sparkle Badge
           Stack(
             clipBehavior: Clip.none,
             children: [
               Container(
-                width: 68,
-                height: 68,
+                width: 58,
+                height: 58,
                 decoration: BoxDecoration(
                   color: AppColors.primaryPurple,
-                  borderRadius: BorderRadius.circular(22),
+                  borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
                       color: AppColors.primaryPurple.withValues(alpha: 0.3),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
+                      blurRadius: 14,
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),
@@ -82,16 +89,16 @@ class PaywallModal extends StatelessWidget {
                   child: Icon(
                     LucideIcons.crown,
                     color: AppColors.primaryYellow,
-                    size: 34,
+                    size: 30,
                   ),
                 ),
               ),
               Positioned(
-                top: -4,
-                right: -4,
+                top: -3,
+                right: -3,
                 child: Container(
-                  width: 24,
-                  height: 24,
+                  width: 22,
+                  height: 22,
                   decoration: const BoxDecoration(
                     color: AppColors.primaryYellow,
                     shape: BoxShape.circle,
@@ -99,17 +106,17 @@ class PaywallModal extends StatelessWidget {
                   child: const Icon(
                     LucideIcons.sparkles,
                     color: AppColors.primaryDark,
-                    size: 13,
+                    size: 12,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // HUMORA PREMIUM Pill
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
               color: AppColors.accentPurpleSoft,
               borderRadius: BorderRadius.circular(20),
@@ -117,43 +124,43 @@ class PaywallModal extends StatelessWidget {
             child: const Text(
               'HUMORA PREMIUM',
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 10.5,
                 fontWeight: FontWeight.w800,
                 color: AppColors.accentPurple,
                 letterSpacing: 0.8,
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
           // Title & Subtitle
           const Text(
             'Ceritanya Belum Selesai!',
             style: TextStyle(
-              fontSize: 22,
+              fontSize: 20,
               fontWeight: FontWeight.w800,
               color: AppColors.textPrimary,
               letterSpacing: -0.4,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           const Text(
             'Video ini khusus member VIP. Buka akses video serial komedi pilihan Anda.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 12.5,
               color: AppColors.textSecondary,
-              height: 1.4,
+              height: 1.35,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
 
           // Features Card
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(color: AppColors.border, width: 1.2),
             ),
             child: Column(
@@ -165,7 +172,7 @@ class PaywallModal extends StatelessWidget {
                   title: 'Akses Video Episode VIP',
                   subtitle: 'Nonton episode video serial pilihan tanpa gembok',
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
                 _buildFeatureRow(
                   icon: LucideIcons.clapperboard,
                   iconBg: const Color(0xFFFFF7ED),
@@ -173,7 +180,7 @@ class PaywallModal extends StatelessWidget {
                   title: 'Paket Akses & Add-on',
                   subtitle: 'Tersedia paket mingguan 15 video dan add-on kuota',
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
                 _buildFeatureRow(
                   icon: LucideIcons.sparkles,
                   iconBg: const Color(0xFFFCE7F3),
@@ -184,11 +191,11 @@ class PaywallModal extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // Price Banner
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: const Color(0xFFF5F0FC),
               borderRadius: BorderRadius.circular(14),
@@ -199,7 +206,7 @@ class PaywallModal extends StatelessWidget {
                 const Text(
                   'Mulai dari',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 12.5,
                     color: AppColors.textSecondary,
                   ),
                 ),
@@ -207,7 +214,7 @@ class PaywallModal extends StatelessWidget {
                   text: const TextSpan(
                     text: 'Rp15.000 ',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.w800,
                       color: AppColors.primaryPurple,
                     ),
@@ -215,7 +222,7 @@ class PaywallModal extends StatelessWidget {
                       TextSpan(
                         text: '/ 7 hari (15 Video)',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 12.5,
                           fontWeight: FontWeight.w500,
                           color: AppColors.textSecondary,
                         ),
@@ -226,16 +233,16 @@ class PaywallModal extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 14),
 
           // CTA Button
           SizedBox(
             width: double.infinity,
-            height: 52,
+            height: 48,
             child: ElevatedButton(
               onPressed: () {
                 VibrationService.mediumImpact();
-                Navigator.of(context).pop();
+                Navigator.of(context).pop(true);
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => const SubscriptionPlansScreen(),
@@ -266,14 +273,20 @@ class PaywallModal extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
-          // Dismiss Button
+          // Dismiss Button ("Nanti saja, lanjut jelajahi")
           GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              child: Text(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              VibrationService.lightImpact();
+              Navigator.of(context).pop(false);
+            },
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              alignment: Alignment.center,
+              child: const Text(
                 'Nanti saja, lanjut jelajahi',
                 style: TextStyle(
                   fontSize: 13,
@@ -285,7 +298,9 @@ class PaywallModal extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildFeatureRow({

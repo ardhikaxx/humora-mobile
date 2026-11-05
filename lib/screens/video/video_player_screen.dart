@@ -95,6 +95,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   // Feature: background_downloader (Local file offline check)
   bool _isDownloadedLocally = false;
 
+  // Prevents duplicate or looping paywall modal popups
+  bool _isPaywallShowing = false;
+
   @override
   void initState() {
     super.initState();
@@ -138,10 +141,45 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   void didPopNext() {
     // Returned to this screen from an overlaid route
     _isPopping = false;
-    // Reinitialize video player since it was disposed in deactivate()
-    if (mounted && !_isDisposed) {
+    if (!mounted || _isDisposed) return;
+
+    final auth = context.read<AuthProvider>();
+
+    // If controller was released or not initialized, reinitialize
+    if (_videoController == null || !_videoController!.value.isInitialized) {
       _initializeVideoPlayer();
+      return;
     }
+
+    // Check if user returned after purchasing a VIP subscription
+    if (_hasTriggeredCompletion) {
+      final seriesProv = context.read<SeriesProvider>();
+      final series = seriesProv.getSeriesById(widget.seriesId) ?? seriesProv.featuredSeries;
+      final nextEpNumber = _currentEpisodeNumber + 1;
+      final nextEpList = series.episodes.where((e) => e.episodeNumber == nextEpNumber).toList();
+      if (nextEpList.isNotEmpty) {
+        final nextEp = nextEpList.first;
+        if (auth.canAccessEpisode(
+          nextEp.episodeNumber,
+          episodeId: int.tryParse(nextEp.id),
+          seriesTotalEpisodes: series.episodes.length,
+          isFreeEpisode: nextEp.isFree,
+        )) {
+          // User subscribed! Automatically advance to next episode
+          _playEpisode(nextEp.episodeNumber);
+          return;
+        }
+      }
+    }
+
+    // If user dismissed paywall ("Nanti saja") or returned without VIP:
+    // DO NOT reinitialize video player or re-trigger paywall!
+    // Keep paused cleanly on the current free video with controls visible.
+    _stopVideoPlaybackOnly();
+    _safeSetState(() {
+      _isPlaying = false;
+      _showControls = true;
+    });
   }
 
   @override
@@ -361,6 +399,32 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     _safeSetState(() {});
   }
 
+  /// Safely presents the VIP Paywall bottom sheet modal without duplicate overlays
+  /// and ensures dismissing returns cleanly to the current video without looping.
+  Future<void> _showPaywallModalSafely({VoidCallback? onDismissed}) async {
+    if (_isPaywallShowing || !mounted || _isPopping || _isDisposed) return;
+    _isPaywallShowing = true;
+    _stopVideoPlaybackOnly();
+    try {
+      final res = await PaywallModal.show(context);
+      if (res != true) {
+        // User dismissed the paywall modal (e.g. tapped "Nanti saja, lanjut jelajahi", "X", or outside)
+        onDismissed?.call();
+      }
+    } catch (e) {
+      debugPrint('[PaywallModal] Error showing modal: $e');
+    } finally {
+      if (mounted) {
+        _isPaywallShowing = false;
+        _stopVideoPlaybackOnly();
+        _safeSetState(() {
+          _isPlaying = false;
+          _showControls = true;
+        });
+      }
+    }
+  }
+
   /// Full clean disposal of active player controller
   void _disposePlayer() {
     _hideControlsTimer?.cancel();
@@ -518,7 +582,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
         _stopVideoPlaybackOnly();
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted && !_isPopping && !_isDisposed) {
-            PaywallModal.show(context);
+            _showPaywallModalSafely();
           }
         });
       } else {
@@ -572,7 +636,22 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       });
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && !_isPopping && !_isDisposed) {
-          PaywallModal.show(context);
+          _showPaywallModalSafely(onDismissed: () {
+            // Find accessible episode or return cleanly to detail screen
+            final freeEps = series.episodes.where((e) => auth.canAccessEpisode(
+              e.episodeNumber,
+              episodeId: int.tryParse(e.id),
+              seriesTotalEpisodes: series.episodes.length,
+              isFreeEpisode: e.isFree,
+            )).toList();
+            if (freeEps.isNotEmpty) {
+              _playEpisode(freeEps.first.episodeNumber);
+            } else {
+              _isPopping = true;
+              _stopVideo();
+              Navigator.of(context).maybePop();
+            }
+          });
         }
       });
       return;
@@ -904,7 +983,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       isFreeEpisode: targetEp.isFree,
     )) {
       _stopVideoPlaybackOnly();
-      PaywallModal.show(context);
+      _showPaywallModalSafely();
       return;
     }
 
@@ -937,7 +1016,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     _checkOfflineStatus();
   }
 
-  void _togglePlayPause() {
+  Future<void> _togglePlayPause() async {
     if (_videoController == null || !_videoController!.value.isInitialized) return;
     VibrationService.lightImpact();
 
@@ -952,6 +1031,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
         _showControls = true;
       });
     } else {
+      // If video has finished or is at the end, rewind to zero so replay starts smoothly
+      if (_hasTriggeredCompletion || _isNearOrAtEnd(_videoController!.value, _videoController!.value.position, _totalDuration)) {
+        await _videoController!.seekTo(Duration.zero);
+        _currentPosition = Duration.zero;
+        _currentProgress = 0.0;
+        _positionNotifier.value = Duration.zero;
+        _progressNotifier.value = 0.0;
+        _hasTriggeredCompletion = false;
+      }
       _audioSession?.setActive(true);
       _videoController!.play();
       WakelockService.enable();
@@ -1785,7 +1873,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
               seriesTotalEpisodes: series.episodes.length,
               isFreeEpisode: currentEpisode.isFree,
             )) {
-              PaywallModal.show(context);
+              _showPaywallModalSafely();
               return;
             }
 
@@ -2295,7 +2383,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                           ),
                           const SizedBox(width: 24),
 
-                          // Play / Pause Button
+                          // Play / Pause / Replay Button
                           GestureDetector(
                             onTap: _togglePlayPause,
                             child: Container(
@@ -2306,7 +2394,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
-                                _isPlaying ? LucideIcons.pause : LucideIcons.play,
+                                _isPlaying
+                                    ? LucideIcons.pause
+                                    : (_hasTriggeredCompletion || (_totalDuration.inMilliseconds > 0 && _currentPosition >= _totalDuration - const Duration(milliseconds: 500)))
+                                        ? LucideIcons.rotateCcw
+                                        : LucideIcons.play,
                                 color: AppColors.primaryDark,
                                 size: 28,
                               ),
