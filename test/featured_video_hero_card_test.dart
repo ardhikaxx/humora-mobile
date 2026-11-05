@@ -203,5 +203,120 @@ void main() {
 
       expect(find.byType(VideoPlayerScreen), findsOneWidget);
     });
+
+    test('SeriesProvider differentiates freeSeries, popularSeries, newSeries, and recommendedSeries orders', () {
+      final s1 = const SeriesModel(
+        id: '1',
+        title: 'Baru Jadian vs Lama Jadian',
+        synopsis: 'Cerita cinta',
+        genre: 'Romantis',
+        releaseYear: '2026',
+        totalEpisodes: 4,
+        likes: '0 Suka',
+        likesCount: 0,
+        thumbnailPath: '',
+        isFreeAvailable: true,
+      );
+
+      final s2 = const SeriesModel(
+        id: '2',
+        title: 'Gue sih gitu orangnya',
+        synopsis: 'Komedi kocak',
+        genre: 'Komedi',
+        releaseYear: '2026',
+        totalEpisodes: 2,
+        likes: '0 Suka',
+        likesCount: 0,
+        thumbnailPath: '',
+        isFreeAvailable: true,
+      );
+
+      final s14 = const SeriesModel(
+        id: '14',
+        title: 'Tipe Penumpang Taxi Online',
+        synopsis: 'Supir taxi unik',
+        genre: 'Sosial',
+        releaseYear: '2026',
+        totalEpisodes: 4,
+        likes: '250 Suka',
+        likesCount: 250,
+        thumbnailPath: '',
+        isFeatured: true,
+        isFreeAvailable: true,
+      );
+
+      final s20 = const SeriesModel(
+        id: '20',
+        title: 'Yokjek',
+        synopsis: 'Sketsa komedi baru',
+        genre: 'Komedi',
+        releaseYear: '2026',
+        totalEpisodes: 4,
+        likes: '10 Suka',
+        likesCount: 10,
+        thumbnailPath: '',
+        isFreeAvailable: true,
+      );
+
+      final provider = SeriesProvider();
+      provider.setSeriesForTesting([s1, s2, s14, s20]);
+
+      // 1. Gratis untuk kamu preserves catalog order starting from ID 1
+      expect(provider.freeSeries.first.id, '1');
+
+      // 2. Video populer ranks by likes count first (s14 has 250 likes)
+      expect(provider.popularSeries.first.id, '14');
+
+      // 3. Terbaru di HUMORA ranks by newest ID descending (s20 has id 20)
+      expect(provider.newSeries.first.id, '20');
+
+      // Verify they do not all start with the same video
+      final firstIds = {
+        provider.freeSeries.first.id,
+        provider.popularSeries.first.id,
+        provider.newSeries.first.id,
+      };
+      expect(firstIds.length, 3);
+    });
+
+    test('SeriesProvider freeSeries only includes series that actually have free video', () {
+      final sPremiumOnly = const SeriesModel(
+        id: '1',
+        title: 'Baru Jadian vs Lama Jadian',
+        synopsis: 'Semua episode berbayar VIP',
+        genre: 'Romantis',
+        releaseYear: '2026',
+        totalEpisodes: 4,
+        likes: '0 Suka',
+        thumbnailPath: '',
+        isFreeAvailable: false,
+        episodes: [
+          EpisodeModel(id: '1', seriesId: '1', episodeNumber: 1, title: 'Ep 1', synopsis: '', duration: '2m', likes: '0', thumbnailPath: '', isFree: false, accessType: 'premium'),
+          EpisodeModel(id: '2', seriesId: '1', episodeNumber: 2, title: 'Ep 2', synopsis: '', duration: '2m', likes: '0', thumbnailPath: '', isFree: false, accessType: 'premium'),
+        ],
+      );
+
+      final sWithFreeEpisode = const SeriesModel(
+        id: '6',
+        title: 'Juru Parkir Liar',
+        synopsis: 'Punya episode gratis',
+        genre: 'Komedi',
+        releaseYear: '2026',
+        totalEpisodes: 4,
+        likes: '0 Suka',
+        thumbnailPath: '',
+        isFreeAvailable: true,
+        episodes: [
+          EpisodeModel(id: '10', seriesId: '6', episodeNumber: 1, title: 'Ep 1', synopsis: '', duration: '2m', likes: '0', thumbnailPath: '', isFree: true, accessType: 'free'),
+          EpisodeModel(id: '11', seriesId: '6', episodeNumber: 2, title: 'Ep 2', synopsis: '', duration: '2m', likes: '0', thumbnailPath: '', isFree: false, accessType: 'premium'),
+        ],
+      );
+
+      final provider = SeriesProvider();
+      provider.setSeriesForTesting([sPremiumOnly, sWithFreeEpisode]);
+
+      expect(provider.freeSeries.length, 1);
+      expect(provider.freeSeries.first.id, '6');
+    });
   });
 }

@@ -20,6 +20,9 @@ class SeriesModel {
   final List<EpisodeModel> episodes;
   final List<String> categories;
 
+  bool get hasFreeEpisode => isFreeAvailable || episodes.any((e) => e.isFree || e.accessType == 'free');
+  int get freeEpisodesCount => episodes.where((e) => e.isFree || e.accessType == 'free').length;
+
   const SeriesModel({
     required this.id,
     this.slug = '',
@@ -89,6 +92,11 @@ class SeriesModel {
         json['is_featured'] == 1 ||
         json['is_featured'] == '1';
 
+    final bool hasFreeEps = eps.any((e) => e.isFree || e.accessType == 'free');
+    final bool isFreeAvailable = eps.isNotEmpty
+        ? hasFreeEps
+        : (json['is_free_available'] == true);
+
     return SeriesModel(
       id: json['id']?.toString() ?? '',
       slug: json['slug']?.toString() ?? '',
@@ -103,7 +111,7 @@ class SeriesModel {
       isFeatured: isFeatured,
       isNew: json['is_new'] == true || isFeatured || totalEps > 0,
       isPopular: json['is_popular'] == true || likesCount > 0 || isFeatured,
-      isFreeAvailable: true,
+      isFreeAvailable: isFreeAvailable,
       isLiked: json['is_liked'] == true,
       tag: tagStr,
       episodes: eps,

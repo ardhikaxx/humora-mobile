@@ -234,96 +234,97 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 24),
               ],
 
-              // Gratis untuk Kamu Section
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                LucideIcons.gift,
-                                size: 18,
-                                color: AppColors.green,
-                              ),
-                              SizedBox(width: 8),
-                              Flexible(
-                                child: Text(
-                                  'Gratis untuk Kamu',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+              // Gratis untuk Kamu Section (Hanya tampil jika ada video gratis)
+              if (seriesProv.freeSeries.isNotEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  LucideIcons.gift,
+                                  size: 18,
+                                  color: AppColors.green,
                                 ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Tonton 2 video pertama tanpa langganan',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
+                                SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    'Gratis untuk Kamu',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+                            SizedBox(height: 2),
+                            Text(
+                              'Tonton video gratis tanpa langganan',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () => widget.onNavigateTab?.call(1),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Semua',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => widget.onNavigateTab?.call(1),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Semua',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.accentPurple,
+                              ),
+                            ),
+                            SizedBox(width: 2),
+                            Icon(
+                              LucideIcons.chevronRight,
+                              size: 16,
                               color: AppColors.accentPurple,
                             ),
-                          ),
-                          SizedBox(width: 2),
-                          Icon(
-                            LucideIcons.chevronRight,
-                            size: 16,
-                            color: AppColors.accentPurple,
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 150,
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: seriesProv.freeSeries.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: 12),
-                  itemBuilder: (context, index) {
-                    final series = seriesProv.freeSeries[index];
-                    return SeriesPosterCard(
-                      series: series,
-                      badgeLabel: 'GRATIS',
-                    );
-                  },
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 150,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: seriesProv.freeSeries.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 12),
+                    itemBuilder: (context, index) {
+                      final series = seriesProv.freeSeries[index];
+                      return SeriesPosterCard(
+                        series: series,
+                        badgeLabel: 'GRATIS',
+                      );
+                    },
+                  ),
                 ),
-              ),
-
-              const SizedBox(height: 24),
+                const SizedBox(height: 24),
+              ],
 
               // Video Populer Section
               Showcase(
@@ -354,7 +355,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     final series = seriesProv.popularSeries[index];
                     return SeriesPosterCard(
                       series: series,
-                      badgeLabel: index == 0 ? 'GRATIS' : (index == 1 ? 'BARU' : 'GRATIS'),
+                      badgeLabel: index < 3 ? 'TOP ${index + 1}' : 'POPULER',
+                      badgeColor: const Color(0xFFEF4444),
                     );
                   },
                 ),
@@ -411,7 +413,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     final series = seriesProv.recommendedSeries[index];
                     return SeriesPosterCard(
                       series: series,
-                      badgeLabel: index % 2 == 0 ? 'GRATIS' : 'BARU',
+                      badgeLabel: 'PILIHAN',
+                      badgeColor: AppColors.accentPurple,
                     );
                   },
                 ),

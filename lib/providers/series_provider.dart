@@ -58,17 +58,106 @@ class SeriesProvider extends ChangeNotifier {
     }
   }
 
-  List<SeriesModel> get popularSeries =>
-      _seriesList.where((s) => s.isPopular).toList();
+  /// 1. Gratis untuk Kamu:
+  /// Hanya serial yang benar-benar memiliki video/episode gratis (is_free == true atau access_type == 'free')
+  /// untuk ditonton penonton tanpa perlu langganan.
+  List<SeriesModel> get freeSeries {
+    if (seriesList.isEmpty) return [];
+    final list = seriesList.where((s) {
+      if (s.episodes.isNotEmpty) {
+        return s.episodes.any((e) => e.isFree || e.accessType == 'free');
+      }
+      return s.isFreeAvailable;
+    }).toList();
 
-  List<SeriesModel> get newSeries =>
-      _seriesList.where((s) => s.isNew).toList();
+    list.sort((a, b) {
+      final aFree = a.episodes.where((e) => e.isFree || e.accessType == 'free').length;
+      final bFree = b.episodes.where((e) => e.isFree || e.accessType == 'free').length;
+      final cmp = bFree.compareTo(aFree);
+      if (cmp != 0) return cmp;
+      final aId = int.tryParse(a.id) ?? 0;
+      final bId = int.tryParse(b.id) ?? 0;
+      return aId.compareTo(bId);
+    });
+    return list;
+  }
 
-  List<SeriesModel> get freeSeries =>
-      _seriesList.where((s) => s.isFreeAvailable).toList();
+  /// 2. Video Populer:
+  /// Serial paling disukai dan viral, diurutkan berdasarkan jumlah likes terbanyak,
+  /// status unggulan, serta total episode / engagement penonton.
+  List<SeriesModel> get popularSeries {
+    if (seriesList.isEmpty) return [];
+    final list = List<SeriesModel>.from(seriesList);
+    list.sort((a, b) {
+      // Prioritas 1: Jumlah likes terbanyak
+      final cmpLikes = b.likesCount.compareTo(a.likesCount);
+      if (cmpLikes != 0) return cmpLikes;
 
-  List<SeriesModel> get recommendedSeries =>
-      _seriesList.reversed.toList();
+      // Prioritas 2: Status unggulan (spotlight)
+      if (a.isFeatured != b.isFeatured) {
+        return a.isFeatured ? -1 : 1;
+      }
+
+      // Prioritas 3: Total episode terbanyak
+      final cmpEps = b.totalEpisodes.compareTo(a.totalEpisodes);
+      if (cmpEps != 0) return cmpEps;
+
+      // Prioritas 4: Tie-breaker deterministik agar susunan berbeda dari katalog gratis & terbaru
+      final aScore = ((int.tryParse(a.id) ?? 0) * 7) % 23;
+      final bScore = ((int.tryParse(b.id) ?? 0) * 7) % 23;
+      return bScore.compareTo(aScore);
+    });
+    return list;
+  }
+
+  /// 3. Terbaru di HUMORA:
+  /// Serial yang paling baru ditambahkan ke katalog (ID rilis terbesar & tahun rilis terbaru).
+  List<SeriesModel> get newSeries {
+    if (seriesList.isEmpty) return [];
+    final list = List<SeriesModel>.from(seriesList);
+    list.sort((a, b) {
+      // Prioritas 1: Tahun rilis terbaru
+      final cmpYear = b.releaseYear.compareTo(a.releaseYear);
+      if (cmpYear != 0) return cmpYear;
+
+      // Prioritas 2: ID terbesar (entri paling baru di database)
+      final aId = int.tryParse(a.id) ?? 0;
+      final bId = int.tryParse(b.id) ?? 0;
+      return bId.compareTo(aId);
+    });
+    return list;
+  }
+
+  /// 4. Rekomendasi Buat Kamu:
+  /// Rekomendasi beragam genre yang menyajikan variasi sketsa komedi berbeda
+  /// agar beranda selalu kaya pilihan dan bervariasi.
+  List<SeriesModel> get recommendedSeries {
+    if (seriesList.isEmpty) return [];
+    final list = List<SeriesModel>.from(seriesList);
+    final Set<String> seenGenres = {};
+    final List<SeriesModel> diverseList = [];
+    final List<SeriesModel> remainingList = [];
+
+    // Ambil perwakilan variasi genre terlebih dahulu
+    for (final s in list) {
+      final mainGenre = s.genre.split(',').first.trim().toLowerCase();
+      if (!seenGenres.contains(mainGenre)) {
+        seenGenres.add(mainGenre);
+        diverseList.add(s);
+      } else {
+        remainingList.add(s);
+      }
+    }
+
+    // Variasi silang untuk sisa serial
+    remainingList.sort((a, b) {
+      final aScore = ((int.tryParse(a.id) ?? 0) * 11) % 29;
+      final bScore = ((int.tryParse(b.id) ?? 0) * 11) % 29;
+      return aScore.compareTo(bScore);
+    });
+
+    return [...diverseList, ...remainingList];
+  }
 
   List<SeriesModel> get filteredSeries {
     return _seriesList.where((series) {
