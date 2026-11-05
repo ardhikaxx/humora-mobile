@@ -11,6 +11,7 @@ class SeriesModel {
   final String likes;
   final int likesCount;
   final String thumbnailPath;
+  final bool isFeatured;
   final bool isNew;
   final bool isPopular;
   final bool isFreeAvailable;
@@ -30,6 +31,7 @@ class SeriesModel {
     required this.likes,
     this.likesCount = 0,
     required this.thumbnailPath,
+    this.isFeatured = false,
     this.isNew = false,
     this.isPopular = false,
     this.isFreeAvailable = true,
@@ -83,6 +85,10 @@ class SeriesModel {
         json['thumbnail_path']?.toString() ??
         '';
 
+    final bool isFeatured = json['is_featured'] == true ||
+        json['is_featured'] == 1 ||
+        json['is_featured'] == '1';
+
     return SeriesModel(
       id: json['id']?.toString() ?? '',
       slug: json['slug']?.toString() ?? '',
@@ -94,8 +100,9 @@ class SeriesModel {
       likes: likesStr,
       likesCount: likesCount,
       thumbnailPath: thumbnail,
-      isNew: json['is_new'] == true || json['is_featured'] == true || totalEps > 0,
-      isPopular: json['is_popular'] == true || likesCount > 0 || json['is_featured'] == true,
+      isFeatured: isFeatured,
+      isNew: json['is_new'] == true || isFeatured || totalEps > 0,
+      isPopular: json['is_popular'] == true || likesCount > 0 || isFeatured,
       isFreeAvailable: true,
       isLiked: json['is_liked'] == true,
       tag: tagStr,
@@ -115,6 +122,7 @@ class SeriesModel {
     String? likes,
     int? likesCount,
     String? thumbnailPath,
+    bool? isFeatured,
     bool? isNew,
     bool? isPopular,
     bool? isFreeAvailable,
@@ -134,6 +142,7 @@ class SeriesModel {
       likes: likes ?? this.likes,
       likesCount: likesCount ?? this.likesCount,
       thumbnailPath: thumbnailPath ?? this.thumbnailPath,
+      isFeatured: isFeatured ?? this.isFeatured,
       isNew: isNew ?? this.isNew,
       isPopular: isPopular ?? this.isPopular,
       isFreeAvailable: isFreeAvailable ?? this.isFreeAvailable,

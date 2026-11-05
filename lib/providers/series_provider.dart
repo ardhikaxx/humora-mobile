@@ -19,6 +19,7 @@ class SeriesProvider extends ChangeNotifier {
   );
 
   List<SeriesModel> _seriesList = [];
+  SeriesModel? _featuredSeries;
   List<String> _categories = ['Semua'];
   String _searchQuery = '';
   String _selectedCategory = 'Semua';
@@ -42,11 +43,18 @@ class SeriesProvider extends ChangeNotifier {
   }
 
   SeriesModel get featuredSeries {
+    if (_featuredSeries != null && _featuredSeries!.id.isNotEmpty) {
+      return _featuredSeries!;
+    }
     if (_seriesList.isEmpty) return _emptySeries;
     try {
-      return _seriesList.firstWhere((s) => s.isNew || s.isPopular);
+      return _seriesList.firstWhere((s) => s.isFeatured);
     } catch (_) {
-      return _seriesList.first;
+      try {
+        return _seriesList.firstWhere((s) => s.isNew || s.isPopular);
+      } catch (_) {
+        return _seriesList.first;
+      }
     }
   }
 
@@ -104,11 +112,52 @@ class SeriesProvider extends ChangeNotifier {
           }
         }
       }
+
+      // Explicitly fetch featured series from API
+      try {
+        final featRes = await _api.getFeaturedSeries();
+        if (featRes.data != null && featRes.data['data'] is List) {
+          final featList = (featRes.data['data'] as List)
+              .map((item) => SeriesModel.fromJson(item as Map<String, dynamic>))
+              .toList();
+          if (featList.isNotEmpty) {
+            _featuredSeries = featList.first;
+          }
+        }
+      } catch (e) {
+        debugPrint('Failed to fetch featured series separately: $e');
+      }
+
+      // If dedicated response was empty, search in _seriesList for isFeatured
+      if ((_featuredSeries == null || _featuredSeries!.id.isEmpty) && _seriesList.isNotEmpty) {
+        try {
+          _featuredSeries = _seriesList.firstWhere((s) => s.isFeatured);
+        } catch (_) {
+          _featuredSeries = _seriesList.isNotEmpty ? _seriesList.first : null;
+        }
+      }
     } catch (e) {
       _errorMessage = 'Gagal memuat series: ${e.toString()}';
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> fetchFeaturedSeries() async {
+    try {
+      final res = await _api.getFeaturedSeries();
+      if (res.data != null && res.data['data'] is List) {
+        final featList = (res.data['data'] as List)
+            .map((item) => SeriesModel.fromJson(item as Map<String, dynamic>))
+            .toList();
+        if (featList.isNotEmpty) {
+          _featuredSeries = featList.first;
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetchFeaturedSeries: $e');
     }
   }
 
@@ -145,6 +194,10 @@ class SeriesProvider extends ChangeNotifier {
 
         if (detail.isLiked) {
           _likedSeries.add(detail.id);
+        }
+
+        if (_featuredSeries != null && (_featuredSeries!.id == detail.id || _featuredSeries!.slug == detail.slug)) {
+          _featuredSeries = detail;
         }
 
         for (final ep in detail.episodes) {
@@ -367,6 +420,13 @@ class SeriesProvider extends ChangeNotifier {
           : '0 Suka';
       _seriesList[sIdx] = s.copyWith(likesCount: newCount, likes: newLikesStr, isLiked: isLiked);
     }
+    if (_featuredSeries != null && (_featuredSeries!.id == seriesId || _featuredSeries!.slug == seriesId)) {
+      final newCount = isLiked ? _featuredSeries!.likesCount + 1 : (_featuredSeries!.likesCount > 0 ? _featuredSeries!.likesCount - 1 : 0);
+      final newLikesStr = newCount > 0
+          ? (newCount >= 1000 ? '${(newCount / 1000).toStringAsFixed(1)}k Suka' : '$newCount Suka')
+          : '0 Suka';
+      _featuredSeries = _featuredSeries!.copyWith(likesCount: newCount, likes: newLikesStr, isLiked: isLiked);
+    }
   }
 
   Set<String> get watchlistSeries => _watchlistSeries;
@@ -393,6 +453,12 @@ class SeriesProvider extends ChangeNotifier {
           : '0 Suka';
       _seriesList[sIdx] = s.copyWith(likesCount: count, likes: newLikesStr, isLiked: isLiked);
     }
+    if (_featuredSeries != null && (_featuredSeries!.id == seriesId || _featuredSeries!.slug == seriesId)) {
+      final newLikesStr = count > 0
+          ? (count >= 1000 ? '${(count / 1000).toStringAsFixed(1)}k Suka' : '$count Suka')
+          : '0 Suka';
+      _featuredSeries = _featuredSeries!.copyWith(likesCount: count, likes: newLikesStr, isLiked: isLiked);
+    }
   }
 
   SeriesModel? getSeriesById(String seriesId) {
@@ -408,6 +474,12 @@ class SeriesProvider extends ChangeNotifier {
   @visibleForTesting
   void setSeriesForTesting(List<SeriesModel> list) {
     _seriesList = list;
+    notifyListeners();
+  }
+
+  @visibleForTesting
+  void setFeaturedSeriesForTesting(SeriesModel? series) {
+    _featuredSeries = series;
     notifyListeners();
   }
 

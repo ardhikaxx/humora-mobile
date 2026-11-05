@@ -262,13 +262,21 @@ class ApiService {
     bool? isFeatured,
   }) async {
     final Map<String, dynamic> query = {};
-    if (search != null && search.isNotEmpty) query['search'] = search;
+    if (search != null && search.isNotEmpty) {
+      query['search'] = search;
+      query['q'] = search;
+    }
     if (category != null && category.isNotEmpty && category != 'Semua') {
       query['category'] = category;
     }
     if (isFeatured != null) query['is_featured'] = isFeatured ? '1' : '0';
 
     return await _dio.get('/series', queryParameters: query);
+  }
+
+  /// Get active featured series for Spotlight Hero Card
+  Future<Response> getFeaturedSeries() async {
+    return await _dio.get('/series', queryParameters: {'is_featured': '1'});
   }
 
   Future<Response> getSeriesDetail(String slugOrId) async {
