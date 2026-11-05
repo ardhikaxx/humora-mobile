@@ -12,6 +12,7 @@ class SeriesPosterCard extends StatelessWidget {
   final double height;
   final String? badgeLabel;
   final Color? badgeColor;
+  final bool showBadge;
   final VoidCallback? onTap;
 
   const SeriesPosterCard({
@@ -21,6 +22,7 @@ class SeriesPosterCard extends StatelessWidget {
     this.height = 120,
     this.badgeLabel,
     this.badgeColor,
+    this.showBadge = true,
     this.onTap,
   });
 
@@ -28,6 +30,7 @@ class SeriesPosterCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final effectiveBadge = badgeLabel ?? (series.isNew ? 'BARU' : 'GRATIS');
     final isGratis = effectiveBadge == 'GRATIS';
+    final hasBadge = showBadge && (badgeLabel != null ? badgeLabel!.isNotEmpty : true);
 
     return RepaintBoundary(
       child: GestureDetector(
@@ -87,29 +90,33 @@ class SeriesPosterCard extends StatelessWidget {
                 left: 8,
                 right: 8,
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: hasBadge
+                      ? MainAxisAlignment.spaceBetween
+                      : MainAxisAlignment.end,
                   children: [
-                    Flexible(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
-                        decoration: BoxDecoration(
-                          color: badgeColor ?? (isGratis ? AppColors.green : AppColors.primaryYellow),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          effectiveBadge,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w800,
-                            color: isGratis ? Colors.white : AppColors.primaryDark,
-                            letterSpacing: 0.3,
+                    if (hasBadge) ...[
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                          decoration: BoxDecoration(
+                            color: badgeColor ?? (isGratis ? AppColors.green : AppColors.primaryYellow),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            effectiveBadge,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                              color: isGratis ? Colors.white : AppColors.primaryDark,
+                              letterSpacing: 0.3,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 4),
+                      const SizedBox(width: 4),
+                    ],
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2.5),
                       decoration: BoxDecoration(

@@ -318,7 +318,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       final series = seriesProv.freeSeries[index];
                       return SeriesPosterCard(
                         series: series,
-                        badgeLabel: 'GRATIS',
+                        showBadge: false,
                       );
                     },
                   ),
@@ -355,8 +355,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     final series = seriesProv.popularSeries[index];
                     return SeriesPosterCard(
                       series: series,
-                      badgeLabel: index < 3 ? 'TOP ${index + 1}' : 'POPULER',
-                      badgeColor: const Color(0xFFEF4444),
+                      showBadge: false,
                     );
                   },
                 ),
@@ -384,8 +383,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     final series = seriesProv.newSeries[index];
                     return SeriesPosterCard(
                       series: series,
-                      badgeLabel: 'BARU',
-                      badgeColor: AppColors.primaryYellowDark,
+                      showBadge: false,
                     );
                   },
                 ),
@@ -413,8 +411,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     final series = seriesProv.recommendedSeries[index];
                     return SeriesPosterCard(
                       series: series,
-                      badgeLabel: 'PILIHAN',
-                      badgeColor: AppColors.accentPurple,
+                      showBadge: false,
                     );
                   },
                 ),
