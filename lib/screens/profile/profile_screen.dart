@@ -501,7 +501,9 @@ class ProfileScreen extends StatelessWidget {
                   Text(
                     auth.user.hasFullAccess
                         ? 'Semua video terbuka'
-                        : '${auth.user.accessibleEpisodesCount} video aktif',
+                        : (auth.user.hasWeeklyActive
+                            ? 'Sisa ${auth.user.remainingQuota ?? 0} dari ${auth.user.totalQuota ?? 15} Video'
+                            : '${auth.user.accessibleEpisodesCount} video aktif'),
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,

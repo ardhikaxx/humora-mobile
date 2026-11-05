@@ -383,7 +383,9 @@ class _SubscriptionDetailScreenState extends State<SubscriptionDetailScreen> {
                 Text(
                   auth.user.hasFullAccess
                       ? 'Seluruh Katalog (Full Access)'
-                      : '${auth.user.accessibleEpisodesCount} Video Aktif',
+                      : (auth.user.hasWeeklyActive
+                          ? 'Sisa ${auth.user.remainingQuota ?? 0} dari ${auth.user.totalQuota ?? 15} Video'
+                          : '${auth.user.accessibleEpisodesCount} Video Aktif'),
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,

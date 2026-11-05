@@ -360,6 +360,10 @@ class ApiService {
     return await _dio.get('/episodes/$id');
   }
 
+  Future<Response> unlockEpisode(int episodeId) async {
+    return await _dio.post('/episodes/$episodeId/unlock');
+  }
+
   // --- SUBSCRIPTIONS & PAYMENT ---
   Future<Response> getSubscriptionPlans() async {
     return await _dio.get('/subscription/plans');

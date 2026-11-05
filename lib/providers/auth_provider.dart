@@ -23,6 +23,9 @@ class AuthProvider extends ChangeNotifier {
     memberSince: 'Hari ini',
     tier: UserTier.guest,
     status: 'active',
+    totalQuota: 0,
+    usedQuota: 0,
+    remainingQuota: 0,
   );
 
   UserModel get user => _user;
@@ -122,6 +125,9 @@ class AuthProvider extends ChangeNotifier {
   bool get canPurchaseAddon => _user.canPurchaseAddon;
   List<int> get accessibleEpisodeIds => _user.accessibleEpisodeIds;
   int get accessibleEpisodesCount => _user.accessibleEpisodesCount;
+  int get totalQuota => _user.currentTotalQuota;
+  int get usedQuota => _user.currentUsedQuota;
+  int get remainingQuota => _user.currentRemainingQuota;
 
   // Access permission rule for video playback:
   // - If series has <= 2 total episodes, only Episode 1 is free trial (Episode 2 is locked).
@@ -129,6 +135,7 @@ class AuthProvider extends ChangeNotifier {
   // - For locked episodes:
   //   * If user has active Full Access -> accessible!
   //   * If episodeId is in accessibleEpisodeIds -> accessible!
+  //   * If user has active weekly package and has remaining quota > 0 -> accessible!
   //   * Otherwise -> locked.
   bool canAccessEpisode(
     int episodeNumber, {
@@ -166,18 +173,68 @@ class AuthProvider extends ChangeNotifier {
       return true;
     }
 
-    // 5. If specific episodeId is provided, check if it's in user's active quota
+    // 5. If specific episodeId is provided, check if it's already in user's active quota
     if (episodeId != null && episodeId > 0) {
       if (_user.accessibleEpisodeIds.contains(episodeId)) {
         return true;
       }
     }
 
-    // 6. Fallback for demo/tier switching or legacy VIP without specific episode lists
-    if (_user.accessibleEpisodeIds.isEmpty && isPremium) {
+    // 6. If user has active weekly package and has remaining quota > 0, they can choose ANY video!
+    if (_user.hasWeeklyActive && (_user.remainingQuota ?? 0) > 0) {
       return true;
     }
 
+    // 7. Fallback for demo/tier switching or legacy VIP without specific episode lists
+    if (_user.accessibleEpisodeIds.isEmpty && isPremium && !_user.hasWeeklyActive) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /// Unlock an episode using available weekly/add-on quota
+  Future<bool> unlockEpisode(int episodeId) async {
+    if (!isPremium || !_user.hasWeeklyActive || (_user.remainingQuota ?? 0) <= 0) {
+      return false;
+    }
+
+    try {
+      final res = await _api.unlockEpisode(episodeId);
+      if (res.data != null && res.data['success'] == true) {
+        final data = res.data['data'] as Map<String, dynamic>;
+        final newRemaining = int.tryParse(data['remaining_quota']?.toString() ?? '0') ?? 0;
+        final newUsed = int.tryParse(data['used_quota']?.toString() ?? '0') ?? 0;
+        final newTotal = int.tryParse(data['total_quota']?.toString() ?? '15') ?? 15;
+        final effectiveTierStr = (data['effective_tier'] ?? 'free').toString();
+
+        final updatedIds = List<int>.from(_user.accessibleEpisodeIds);
+        if (!updatedIds.contains(episodeId)) {
+          updatedIds.add(episodeId);
+        }
+
+        UserTier tier = _user.tier;
+        if (effectiveTierStr == 'free' || newRemaining <= 0) {
+          tier = UserTier.free;
+        }
+
+        _user = _user.copyWith(
+          tier: tier,
+          accessibleEpisodeIds: updatedIds,
+          accessibleEpisodesCount: updatedIds.length,
+          remainingQuota: newRemaining,
+          usedQuota: newUsed,
+          totalQuota: newTotal,
+          hasWeeklyActive: newRemaining > 0,
+        );
+
+        await _saveUserToCache(_user);
+        notifyListeners();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('AuthProvider: Failed to unlock episode: $e');
+    }
     return false;
   }
 
@@ -196,6 +253,9 @@ class AuthProvider extends ChangeNotifier {
           memberSince: 'Maret 2026',
           tier: UserTier.free,
           status: 'active',
+          totalQuota: 0,
+          usedQuota: 0,
+          remainingQuota: 0,
         );
         break;
       case UserTier.premium:
@@ -207,6 +267,10 @@ class AuthProvider extends ChangeNotifier {
           gender: 'Laki-laki',
           memberSince: 'Januari 2026',
           tier: UserTier.premium,
+          hasWeeklyActive: true,
+          totalQuota: 15,
+          usedQuota: 4,
+          remainingQuota: 11,
           validUntil: '2026-12-31 23:59:59',
           status: 'active',
         );
@@ -220,6 +284,9 @@ class AuthProvider extends ChangeNotifier {
           gender: 'Perempuan',
           memberSince: 'November 2025',
           tier: UserTier.expired,
+          totalQuota: 15,
+          usedQuota: 15,
+          remainingQuota: 0,
           validUntil: '2026-03-01 00:00:00',
           status: 'active',
         );

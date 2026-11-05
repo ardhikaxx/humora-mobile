@@ -662,6 +662,14 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _hasVideoError = false;
     });
 
+    // Auto-unlock episode using weekly video quota if applicable
+    final epId = int.tryParse(episode.id);
+    if (auth.user.hasWeeklyActive && (auth.user.remainingQuota ?? 0) > 0 && epId != null && epId > 0) {
+      if (!auth.user.accessibleEpisodeIds.contains(epId)) {
+        unawaited(auth.unlockEpisode(epId));
+      }
+    }
+
     _heartbeatTimer?.cancel();
     _viewingSessionId = 'mob_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(99999)}';
     _sessionWatchedSeconds = 0;

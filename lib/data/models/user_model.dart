@@ -20,6 +20,9 @@ class UserModel {
   final bool canPurchaseAddon;
   final List<int> accessibleEpisodeIds;
   final int accessibleEpisodesCount;
+  final int? totalQuota;
+  final int? usedQuota;
+  final int? remainingQuota;
   final String? validUntil;
   final int? remainingDays;
   final String? initials;
@@ -40,6 +43,9 @@ class UserModel {
     this.canPurchaseAddon = false,
     this.accessibleEpisodeIds = const [],
     this.accessibleEpisodesCount = 0,
+    this.totalQuota,
+    this.usedQuota,
+    this.remainingQuota,
     this.validUntil,
     this.remainingDays,
     this.initials,
@@ -81,6 +87,16 @@ class UserModel {
     final bool hasWeekly = json['has_weekly_active'] == true;
     final bool canAddon = json['can_purchase_addon'] == true || hasWeekly;
 
+    final int? totalQ = json['total_quota'] != null
+        ? int.tryParse(json['total_quota'].toString())
+        : null;
+    final int? usedQ = json['used_quota'] != null
+        ? int.tryParse(json['used_quota'].toString())
+        : null;
+    final int? remainingQ = json['remaining_quota'] != null
+        ? int.tryParse(json['remaining_quota'].toString())
+        : null;
+
     return UserModel(
       id: json['id']?.toString() ?? '',
       name: rawName,
@@ -98,6 +114,9 @@ class UserModel {
       accessibleEpisodesCount: json['accessible_episodes_count'] != null
           ? int.tryParse(json['accessible_episodes_count'].toString()) ?? epIds.length
           : epIds.length,
+      totalQuota: totalQ,
+      usedQuota: usedQ,
+      remainingQuota: remainingQ,
       validUntil: json['valid_until']?.toString(),
       remainingDays: json['remaining_days'] != null
           ? int.tryParse(json['remaining_days'].toString()) ?? 0
@@ -123,6 +142,9 @@ class UserModel {
       'can_purchase_addon': canPurchaseAddon,
       'accessible_episode_ids': accessibleEpisodeIds,
       'accessible_episodes_count': accessibleEpisodesCount,
+      'total_quota': totalQuota,
+      'used_quota': usedQuota,
+      'remaining_quota': remainingQuota,
       'valid_until': validUntil,
       'remaining_days': remainingDays,
       'initials': initials,
@@ -144,6 +166,10 @@ class UserModel {
       ? initials!
       : _computeInitials(name);
 
+  int get currentRemainingQuota => remainingQuota ?? 0;
+  int get currentTotalQuota => totalQuota ?? 0;
+  int get currentUsedQuota => usedQuota ?? 0;
+
   UserModel copyWith({
     String? id,
     String? name,
@@ -159,6 +185,9 @@ class UserModel {
     bool? canPurchaseAddon,
     List<int>? accessibleEpisodeIds,
     int? accessibleEpisodesCount,
+    int? totalQuota,
+    int? usedQuota,
+    int? remainingQuota,
     String? validUntil,
     int? remainingDays,
     String? initials,
@@ -179,6 +208,9 @@ class UserModel {
       canPurchaseAddon: canPurchaseAddon ?? this.canPurchaseAddon,
       accessibleEpisodeIds: accessibleEpisodeIds ?? this.accessibleEpisodeIds,
       accessibleEpisodesCount: accessibleEpisodesCount ?? this.accessibleEpisodesCount,
+      totalQuota: totalQuota ?? this.totalQuota,
+      usedQuota: usedQuota ?? this.usedQuota,
+      remainingQuota: remainingQuota ?? this.remainingQuota,
       validUntil: validUntil ?? this.validUntil,
       remainingDays: remainingDays ?? this.remainingDays,
       initials: initials ?? this.initials,
