@@ -169,31 +169,6 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
-
-                        // Free Episodes Pill
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE6F8F0),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(LucideIcons.check, size: 13, color: AppColors.green),
-                              SizedBox(width: 4),
-                              Text(
-                                'Gratis Episode 1 & 2',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.green,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -306,14 +281,15 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                             ),
                           ],
                         ),
-                        Text(
-                          auth.isPremium ? 'Semua Terbuka' : 'Video 1 & 2 Gratis',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textSecondary,
+                        if (auth.isPremium)
+                          const Text(
+                            'Semua Terbuka',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
-                        ),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -420,51 +396,27 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                 ),
               ),
 
-              // Bottom Badges
-              Positioned(
-                left: 12,
-                bottom: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.green,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(LucideIcons.sparkles, size: 12, color: Colors.white),
-                      SizedBox(width: 4),
-                      Text(
-                        '2 Video Gratis',
-                        style: TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
+              // Bottom Duration Badge
+              if (series.episodes.isNotEmpty)
+                Positioned(
+                  right: 12,
+                  bottom: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      series.episodes.first.duration,
+                      style: const TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
                       ),
-                    ],
-                  ),
-                ),
-              ),
-              Positioned(
-                right: 12,
-                bottom: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.7),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Text(
-                    '2m 10s',
-                    style: TextStyle(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
                     ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
