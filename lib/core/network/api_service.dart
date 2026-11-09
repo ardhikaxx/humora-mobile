@@ -302,22 +302,37 @@ class ApiService {
     }
   }
 
-  Future<Response> verifyForgotPasswordEmail(String email) async {
+  Future<Response> verifyForgotPasswordIdentifier(String identifier) async {
+    final clean = identifier.trim();
+    final isEmail = clean.contains('@');
     return await _dio.post(
       '/auth/forgot-password',
-      data: {'email': email},
+      data: {
+        'identifier': clean,
+        if (isEmail) 'email': clean,
+        if (!isEmail) 'phone': clean,
+      },
     );
   }
 
+  Future<Response> verifyForgotPasswordEmail(String email) => verifyForgotPasswordIdentifier(email);
+
   Future<Response> resetPassword({
-    required String email,
+    String? identifier,
+    String? email,
     required String password,
     required String passwordConfirmation,
   }) async {
+    final target = (identifier != null && identifier.trim().isNotEmpty)
+        ? identifier.trim()
+        : (email?.trim() ?? '');
+    final isEmail = target.contains('@');
     return await _dio.post(
       '/auth/reset-password',
       data: {
-        'email': email,
+        'identifier': target,
+        if (isEmail) 'email': target,
+        if (!isEmail) 'phone': target,
         'password': password,
         'password_confirmation': passwordConfirmation,
       },

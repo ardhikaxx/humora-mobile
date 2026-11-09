@@ -19,11 +19,15 @@ class LoginScreen extends StatefulWidget {
   static const String keyRememberedTab = 'humora_auth_remembered_tab';
 
   final String? initialEmail;
+  final String? initialPhone;
+  final String? initialIdentifier;
   final SubscriptionPlanModel? redirectToCheckoutPlan;
 
   const LoginScreen({
     super.key,
     this.initialEmail,
+    this.initialPhone,
+    this.initialIdentifier,
     this.redirectToCheckoutPlan,
   });
 
@@ -42,12 +46,24 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    _emailController = TextEditingController(
-      text: widget.initialEmail ?? '',
-    );
-    if (widget.initialEmail != null && widget.initialEmail!.isNotEmpty) {
+    final initialId = widget.initialIdentifier?.trim() ?? '';
+    final isPhone = (widget.initialPhone != null && widget.initialPhone!.trim().isNotEmpty) ||
+        (initialId.isNotEmpty && !initialId.contains('@') && RegExp(r'^[0-9+]+$').hasMatch(initialId));
+
+    final emailText = widget.initialEmail ?? (!isPhone ? initialId : '');
+    final phoneText = widget.initialPhone ?? (isPhone ? initialId : '');
+
+    _emailController = TextEditingController(text: emailText);
+    if (phoneText.isNotEmpty) {
+      _phoneController.text = phoneText;
+    }
+
+    if (isPhone && phoneText.isNotEmpty) {
+      _selectedTabIndex = 1;
+    } else if (emailText.isNotEmpty) {
       _selectedTabIndex = 0;
     }
+
     _loadRememberedCredentials();
   }
 
@@ -64,20 +80,25 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         _rememberMe = savedRememberMe;
         if (savedRememberMe) {
-          // Hanya isi email tersimpan jika widget.initialEmail kosong
-          if ((widget.initialEmail == null || widget.initialEmail!.isEmpty) &&
-              savedEmail != null &&
-              savedEmail.isNotEmpty) {
+          final hasExplicitEmail = widget.initialEmail != null && widget.initialEmail!.isNotEmpty;
+          final hasExplicitPhone = widget.initialPhone != null && widget.initialPhone!.isNotEmpty;
+          final hasExplicitId = widget.initialIdentifier != null && widget.initialIdentifier!.isNotEmpty;
+
+          // Hanya isi email tersimpan jika initial email/id kosong
+          if (!hasExplicitEmail && !hasExplicitId && savedEmail != null && savedEmail.isNotEmpty) {
             _emailController.text = savedEmail;
             _emailController.selection = TextSelection.fromPosition(
               TextPosition(offset: _emailController.text.length),
             );
           }
-          if (savedPhone != null && savedPhone.isNotEmpty) {
+
+          // Hanya isi phone tersimpan jika initial phone/id kosong
+          if (!hasExplicitPhone && !hasExplicitId && savedPhone != null && savedPhone.isNotEmpty) {
             _phoneController.text = savedPhone;
           }
-          // Kembalikan tab terakhir jika initialEmail tidak dispesifikasikan
-          if (widget.initialEmail == null || widget.initialEmail!.isEmpty) {
+
+          // Kembalikan tab terakhir jika initial tidak dispesifikasikan
+          if (!hasExplicitEmail && !hasExplicitPhone && !hasExplicitId) {
             if (savedTab == 1 && savedPhone != null && savedPhone.isNotEmpty) {
               _selectedTabIndex = 1;
             } else {
@@ -429,9 +450,17 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         GestureDetector(
                           onTap: () {
+                            final identifier = _selectedTabIndex == 0
+                                ? _emailController.text.trim()
+                                : _phoneController.text.trim();
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) => const ForgotPasswordScreen(),
+                                builder: (_) => ForgotPasswordScreen(
+                                  initialEmail: _selectedTabIndex == 0 ? identifier : null,
+                                  initialPhone: _selectedTabIndex == 1 ? identifier : null,
+                                  initialIdentifier: identifier,
+                                  initialTabIndex: _selectedTabIndex,
+                                ),
                               ),
                             );
                           },

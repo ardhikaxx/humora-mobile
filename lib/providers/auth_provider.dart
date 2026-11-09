@@ -452,12 +452,16 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<bool> verifyForgotPasswordEmail(String email) async {
+    return verifyForgotPasswordIdentifier(email);
+  }
+
+  Future<bool> verifyForgotPasswordIdentifier(String identifier) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final res = await _api.verifyForgotPasswordEmail(email.trim());
+      final res = await _api.verifyForgotPasswordIdentifier(identifier.trim());
       _isLoading = false;
       notifyListeners();
       return res.data != null && res.data['success'] == true;
@@ -470,7 +474,8 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<bool> resetPassword({
-    required String email,
+    String? identifier,
+    String? email,
     required String password,
     required String passwordConfirmation,
   }) async {
@@ -479,8 +484,11 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final target = (identifier != null && identifier.trim().isNotEmpty)
+          ? identifier.trim()
+          : (email?.trim() ?? '');
       final res = await _api.resetPassword(
-        email: email.trim(),
+        identifier: target,
         password: password,
         passwordConfirmation: passwordConfirmation,
       );
